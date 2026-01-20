@@ -21,10 +21,16 @@ function App() {
   const prospectFinalTranscript = useRef('');
   const closerFinalTranscript = useRef('');
   const [popupOpen, setPopupOpen] = useState(false);
+  const [conversationSummary, setConversationSummary] = useState('');
+  // 🔹 Track last sent index for delta
+  const lastSentIndex = useRef({
+    prospect: 0,
+    closer: 0,
+  });
 
   // Backend API URL
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:8000';
-
+   
   useEffect(() => {
     const apiKey = process.env.REACT_APP_DEEPGRAM_API_KEY;
     if (apiKey) {
@@ -38,15 +44,22 @@ function App() {
         handleGetAISuggestion();
       }
     };
- 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [prospectTranscript, closerTranscript]);
-
-  // ✅ NEW: Get AI suggestion using RAG backend
+   
+  const getDelta = (fullText, type) => {
+    const lastIndex = lastSentIndex.current[type];
+    const delta = fullText.slice(lastIndex);
+    lastSentIndex.current[type] = fullText.length;
+    return delta.trim();
+    };
   const handleGetAISuggestion = async () => {
-    if (!prospectTranscript && !closerTranscript) {
-      alert('No conversation yet! Start recording first.');
+    const prospectDelta = getDelta(prospectFinalTranscript.current, 'prospect');
+    const closerDelta = getDelta(closerFinalTranscript.current, 'closer');
+
+    if (!prospectDelta && !closerDelta) {
+      alert('No new conversation since last suggestion.');
       return;
     }
 
@@ -61,44 +74,43 @@ function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/query`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: session.user.id,
-          prospect_transcript: prospectTranscript,
-          closer_transcript: closerTranscript,
+
+          // ✅ NEW: send summary + deltas
+          conversation_summary: conversationSummary || 'None',
+          prospect_transcript: prospectDelta,
+          closer_transcript: closerDelta,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('RAG query failed');
-      }
+      if (!response.ok) throw new Error('RAG query failed');
 
       const data = await response.json();
-      
-      // Set AI suggestion from RAG response
+
+      // ✅ Update suggestion
       setAiSuggestion({
-        whatToSay: data.what_to_say || 'No suggestion available',
+        whatToSay: data.what_to_say || '',
         whyItWorks: data.why_it_works || '',
         nextMove: data.next_move || '',
+        conversationSummary: data.conversation_summary || '',
         sources: data.sources || [],
         timestamp: new Date().toISOString(),
       });
 
+      // ✅ VERY IMPORTANT: overwrite summary
+      if (data.conversation_summary) {
+        setConversationSummary(data.conversation_summary);
+      }
+
     } catch (error) {
-      console.error('Error getting AI suggestion:', error);
-      setAiSuggestion({
-        whatToSay: 'Error: Could not get AI suggestion. Please try again.',
-        whyItWorks: '',
-        nextMove: '',
-        sources: [],
-        timestamp: new Date().toISOString(),
-      });
+      console.error(error);
     } finally {
       setIsLoadingAI(false);
     }
   };
+
 
   const startRecording = async () => {
     try {
@@ -274,14 +286,17 @@ function App() {
 
     setIsRecording(false);
   };
-
   const clearTranscripts = () => {
     setProspectTranscript('');
     setCloserTranscript('');
     prospectFinalTranscript.current = '';
     closerFinalTranscript.current = '';
+
+    lastSentIndex.current = { prospect: 0, closer: 0 };
+    setConversationSummary('');
     setAiSuggestion(null);
   };
+
 
   if (!session) return <LoginPage onLogin={setSession} />;
 

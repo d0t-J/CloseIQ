@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 class FileMetadata(BaseModel):
     filename: str
@@ -10,6 +10,7 @@ class FileMetadata(BaseModel):
 
 class QueryRequest(BaseModel):
     user_id: str
+    conversation_summary: Optional[str] = None
     prospect_transcript: str
     closer_transcript: str
 
@@ -17,4 +18,5 @@ class QueryResponse(BaseModel):
     what_to_say: str
     why_it_works: str
     next_move: str
+    conversation_summary: str
     sources: List[str]

@@ -64,6 +64,14 @@ function AISuggestions({ suggestion, isLoading }) {
             <p className="suggestion-text">{suggestion.nextMove}</p>
           </div>
         )}
+        {suggestion.conversationSummary && (
+            <div className="suggestion-section summary">
+              <h3>📝 Conversation Summary</h3>
+              <p className="suggestion-text">
+                {suggestion.conversationSummary}
+              </p>
+            </div>
+          )}
 
         {suggestion.sources && suggestion.sources.length > 0 && (
           <div className="suggestion-section sources">
