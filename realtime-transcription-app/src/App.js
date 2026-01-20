@@ -29,7 +29,7 @@ function App() {
   });
 
   // Backend API URL
-  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:8000';
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://77.37.62.127:8000';
    
   useEffect(() => {
     const apiKey = process.env.REACT_APP_DEEPGRAM_API_KEY;
