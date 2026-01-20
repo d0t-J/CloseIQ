@@ -6,4 +6,4 @@ router = APIRouter()
 
 @router.post("/query", response_model=QueryResponse)
 async def query_rag(req: QueryRequest):
-    return await handle_query(req)            
+    return await handle_query(req)
