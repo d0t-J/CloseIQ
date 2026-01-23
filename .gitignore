@@ -47,6 +47,8 @@ site/
 # Virtual environments
 venv/
 .venv/
+conda/
+.conda/
 env/
 .envrc
 
