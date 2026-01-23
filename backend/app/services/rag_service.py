@@ -9,8 +9,9 @@ llm = ChatOpenAI(
     model="openai/gpt-4o-mini",
     api_key=OPENAI_API_KEY,
     base_url="https://openrouter.ai/api/v1",
-    temperature=0.7
+    temperature=0.7,
 )
+
 
 def retrieve_context(user_id: str, query: str, k: int = 3):
     vectorstore = get_user_vector_store(user_id)
@@ -21,11 +22,12 @@ def retrieve_context(user_id: str, query: str, k: int = 3):
     sources = [doc.metadata.get("source", "Unknown") for doc in docs]
     return context, sources
 
+
 def ai_suggestion(
     conversation_summary: str,
     prospect_transcript: str,
     closer_transcript: str,
-    context: str
+    context: str,
 ):
     prompt = f"""
 You are a real-time sales copilot helping a closer during a live call.
@@ -73,24 +75,23 @@ TRAINING CONTEXT:
     response = llm.invoke(prompt)
     content = response.content
 
-    sections = {
-        "what": "",
-        "why": "",
-        "next": "",
-        "summary": ""
-    }
+    sections = {"what": "", "why": "", "next": "", "summary": ""}
 
     current = None
     for line in content.split("\n"):
         l = line.lower().strip()
         if l.startswith("what to say"):
-            current = "what"; continue
+            current = "what"
+            continue
         if l.startswith("why"):
-            current = "why"; continue
+            current = "why"
+            continue
         if l.startswith("next"):
-            current = "next"; continue
+            current = "next"
+            continue
         if l.startswith("conversation summary"):
-            current = "summary"; continue
+            current = "summary"
+            continue
 
         if current:
             sections[current] += line + " "
@@ -99,8 +100,9 @@ TRAINING CONTEXT:
         "what_to_say": sections["what"].strip(),
         "why_it_works": sections["why"].strip(),
         "next_move": sections["next"].strip(),
-        "conversation_summary": sections["summary"].strip()
+        "conversation_summary": sections["summary"].strip(),
     }
+
 
 async def handle_query(req: QueryRequest) -> QueryResponse:
     try:
@@ -111,7 +113,7 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
             conversation_summary=req.conversation_summary,
             prospect_transcript=req.prospect_transcript,
             closer_transcript=req.closer_transcript,
-            context=context
+            context=context,
         )
 
         return QueryResponse(
@@ -119,11 +121,8 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
             why_it_works=suggestion["why_it_works"],
             next_move=suggestion["next_move"],
             conversation_summary=suggestion["conversation_summary"],
-            sources=list(set(sources))
+            sources=list(set(sources)),
         )
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"AI suggestion failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"AI suggestion failed: {str(e)}")
