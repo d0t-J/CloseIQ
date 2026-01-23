@@ -153,6 +153,7 @@ function App() {
                 punctuate: true,
                 endpointing: 200,
                 utterance_end_ms: 1000,
+                diarize: true,
             });
 
             connection.on(LiveTranscriptionEvents.Open, () => {
@@ -235,6 +236,7 @@ function App() {
                 punctuate: true,
                 endpointing: 200,
                 utterance_end_ms: 1000,
+                diarize: true,
             });
 
             connection.on(LiveTranscriptionEvents.Open, () => {
@@ -258,22 +260,68 @@ function App() {
             });
 
             connection.on(LiveTranscriptionEvents.Transcript, (data) => {
+                const words = data.channel.alternatives[0].words || [];
                 const transcript = data.channel.alternatives[0].transcript;
                 const isFinal = data.is_final;
 
-                if (transcript && transcript.trim() !== "") {
-                    if (isFinal) {
-                        prospectFinalTranscript.current +=
-                            (prospectFinalTranscript.current ? " " : "") +
-                            transcript;
-                        setProspectTranscript(prospectFinalTranscript.current);
-                    } else {
-                        setProspectTranscript(
-                            prospectFinalTranscript.current +
-                                (prospectFinalTranscript.current ? " " : "") +
-                                transcript,
-                        );
+                if (!transcript || transcript.trim() !== "") {
+                    return;
+                }
+
+                if (
+                    isFinal &&
+                    words.length > 0 &&
+                    words[0].speaker !== undefined
+                ) {
+                    let currentSpeaker = null;
+                    let segments = [];
+                    let currentSegment = { speaker: null, text: "" };
+
+                    words.forEach((word) => {
+                        const speaker = word.speaker ?? 0;
+
+                        if (speaker !== currentSpeaker) {
+                            if (currentSegment.text) {
+                                segments.push(currentSegment);
+                            }
+
+                            currentSpeaker = speaker;
+                            currentSegment = {
+                                speaker,
+                                text: word.punctuated_word || word.word,
+                            };
+                        } else {
+                            currentSegment.text +=
+                                " " + (word.punctuated_word || word.word);
+                        }
+                    });
+                    if (currentSegment.text) {
+                        segments.push(currentSegment);
                     }
+
+                    const formattedText = segments
+                        .map(
+                            (segment) =>
+                                `[Speaker: ${segment.speaker}]: ${segment.text}`,
+                        )
+                        .join("\n");
+                    prospectFinalTranscript.current +=
+                        (prospectFinalTranscript.current ? " " : "") +
+                        formattedText;
+                    setProspectTranscript(
+                        prospectFinalTranscript.current.trim(),
+                    );
+                } else if (isFinal) {
+                    prospectFinalTranscript.current +=
+                        (prospectFinalTranscript.current ? " " : "") +
+                        transcript;
+                    setProspectTranscript(prospectFinalTranscript.current);
+                } else {
+                    setProspectTranscript(
+                        prospectFinalTranscript.current +
+                            (prospectFinalTranscript.current ? " " : "") +
+                            transcript,
+                    );
                 }
             });
 
