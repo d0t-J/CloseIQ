@@ -28,6 +28,16 @@ function App() {
         closer: 0,
     });
 
+    const speakerRegistry = useRef({});
+
+    const mapSpeakerLabel = (speakerId) => {
+        if (speakerRegistry.current[speakerId] === undefined) {
+            const prospectNum = Object.keys(speakerRegistry.current).length + 1;
+            speakerRegistry.current[speakerId] = `Prospect ${prospectNum}`;
+        }
+        return speakerRegistry.current[speakerId];
+    };
+
     // Backend API URL
     const BACKEND_URL =
         process.env.REACT_APP_BACKEND_URL || "http://77.37.62.127:8000";
@@ -153,7 +163,6 @@ function App() {
                 punctuate: true,
                 endpointing: 200,
                 utterance_end_ms: 1000,
-                diarize: true,
             });
 
             connection.on(LiveTranscriptionEvents.Open, () => {
@@ -264,7 +273,7 @@ function App() {
                 const transcript = data.channel.alternatives[0].transcript;
                 const isFinal = data.is_final;
 
-                if (!transcript || transcript.trim() !== "") {
+                if (!transcript || transcript.trim() === "") {
                     return;
                 }
 
@@ -302,7 +311,7 @@ function App() {
                     const formattedText = segments
                         .map(
                             (segment) =>
-                                `[Speaker: ${segment.speaker}]: ${segment.text}`,
+                                `[${mapSpeakerLabel(segment.speaker)}]: ${segment.text}`,
                         )
                         .join("\n");
                     prospectFinalTranscript.current +=

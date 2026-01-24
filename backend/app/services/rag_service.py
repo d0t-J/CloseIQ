@@ -32,12 +32,18 @@ def ai_suggestion(
     prompt = f"""
 You are a real-time sales copilot helping a closer during a live call.
 
+The prospect transcript may include speaker labels like [Prospect 1], [Prospect 2], etc.
+These represent different people on the prospect side of the call.
+
 You will be given:
 1) A short summary of the conversation so far (if available)
 2) NEW transcript only
 3) Training context (optional)
 
 IMPORTANT RULES:
+- Pay attention to WHO said what on the prospect side
+- The closer is always one person (no labels needed)
+- Tailor suggestions based on which prospect is speaking
 - NEVER repeat old transcript.
 - Treat the summary as the ONLY memory of past conversation.
 - Focus mainly on the NEW transcript.
