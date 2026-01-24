@@ -29,7 +29,7 @@ function App() {
         prospect: 0,
         closer: 0,
     });
-    
+
     const speakerRegistry = useRef({});
 
     const mapSpeakerLabel = (speakerId) => {
@@ -38,6 +38,30 @@ function App() {
             speakerRegistry.current[speakerId] = `Prospect ${prospectNum}`;
         }
         return speakerRegistry.current[speakerId];
+    };
+    const formatTimestamp = (seconds) => {
+        if (seconds === null || seconds === undefined) return "00:00";
+
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+
+        return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    };
+
+    const getElapsedTime = () => {
+        if (!recordingStartTime.current) return 0;
+
+        return (Date.now() - recordingStartTime.current) / 1000;
+    };
+
+    const addToTimeline = (speaker, text, startTime, endTime) => {
+        conversationTimeline.current.push({
+            speaker,
+            text,
+            startTime: startTime ?? getElapsedTime(),
+            endTime: endTime ?? getElapsedTime(),
+            timestamp: new Date().toISOString(),
+        });
     };
 
     // Backend API URL
@@ -135,6 +159,9 @@ function App() {
 
             prospectFinalTranscript.current = "";
             closerFinalTranscript.current = "";
+            speakerRegistry.current = {};
+            conversationTimeline.current = [];
+            recordingStartTime.current = Date.now();
 
             await startCloserTranscription();
             await startProspectTranscription();
