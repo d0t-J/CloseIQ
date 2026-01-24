@@ -71,57 +71,71 @@ def retrieve_context(user_id: str, query: str, k: int = 3):
 
 def ai_suggestion(
     conversation_summary: str,
+    conversation_transcript: str,
     prospect_transcript: str,
     closer_transcript: str,
     context: str,
 ):
+    parsed = parse_timestamped_transcript(conversation_transcript)
+
+    speaker_info = ""
+
+    if parsed["speakers"]:
+        prospect_speakers = [
+            speaker for speaker in parsed["speakers"] if speaker.startswith("Prospect")
+        ]
+        if len(prospect_speakers) > 1:
+            speaker_info = f"Multiple prospects detected: {', '.join(prospect_speakers)}. Pay Attention to who said that."
+        if parsed["last_speaker"]:
+            speaker_info += f"\nLast speaker was: {parsed['last_speaker']}"
+
     prompt = f"""
-You are a real-time sales copilot helping a closer during a live call.
+    You are a real-time sales copilot helping a closer during a live call.
 
-The prospect transcript may include speaker labels like [Prospect 1], [Prospect 2], etc.
-These represent different people on the prospect side of the call.
+    SPEAKER DIARIZATION INFO:
+    {speaker_info if speaker_info else "Single prospect detected."}
 
-You will be given:
-1) A short summary of the conversation so far (if available)
-2) NEW transcript only
-3) Training context (optional)
+    The transcript below includes TIMESTAMPS [MM:SS] showing when each statement was made.
+    This helps you understand the conversation flow and timing.
 
-IMPORTANT RULES:
-- Pay attention to WHO said what on the prospect side
-- The closer is always one person (no labels needed)
-- Tailor suggestions based on which prospect is speaking
-- NEVER repeat old transcript.
-- Treat the summary as the ONLY memory of past conversation.
-- Focus mainly on the NEW transcript.
-- Keep responses short and actionable.
+    You will be given:
+    1) A short summary of the conversation so far (if available)
+    2) NEW timestamped transcript showing the conversation flow
+    3) Training context (optional)
 
-Generate EXACTLY four sections in this order:
+    IMPORTANT RULES:
+    - Use timestamps to understand conversation FLOW and PACE
+    - If someone spoke recently (last few seconds), they're likely still engaged
+    - Pay attention to WHO said what - especially if multiple prospects
+    - The closer is always one person
+    - If one prospect has concerns while another is interested, address strategically
+    - NEVER repeat old transcript
+    - Treat the summary as the ONLY memory of past conversation
+    - Keep responses short and actionable
 
-What to Say:
-Why It Works:
-Next Move:
-Conversation Summary:
+    Generate EXACTLY four sections in this order:
 
---------------------------------
+    What to Say:
+    Why It Works:
+    Next Move:
+    Conversation Summary:
 
-PREVIOUS CONVERSATION SUMMARY:
-{conversation_summary if conversation_summary else "None"}
+    --------------------------------
 
---------------------------------
+    PREVIOUS CONVERSATION SUMMARY:
+    {conversation_summary if conversation_summary else "None"}
 
-NEW CONVERSATION:
-Prospect:
-{prospect_transcript}
+    --------------------------------
 
-Closer:
-{closer_transcript}
+    NEW CONVERSATION (with timestamps):
+    {conversation_transcript if conversation_transcript else "No new conversation"}
 
---------------------------------
+    --------------------------------
 
-TRAINING CONTEXT:
-{context if context else "None"}
+    TRAINING CONTEXT:
+    {context if context else "None"}
 
---------------------------------
+    --------------------------------
 """
 
     response = llm.invoke(prompt)
@@ -153,6 +167,7 @@ TRAINING CONTEXT:
         "why_it_works": sections["why"].strip(),
         "next_move": sections["next"].strip(),
         "conversation_summary": sections["summary"].strip(),
+        "speakers_detected": parsed.get("speaker_count", 1),
     }
 
 
