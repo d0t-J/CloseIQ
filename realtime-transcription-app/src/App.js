@@ -22,21 +22,24 @@ function App() {
     const closerFinalTranscript = useRef("");
     const [popupOpen, setPopupOpen] = useState(false);
     const [conversationSummary, setConversationSummary] = useState("");
+    const conversationTimeline = useRef([]);
+    const recordingStartTime = useRef(null);
     // 🔹 Track last sent index for delta
     const lastSentIndex = useRef({
         prospect: 0,
         closer: 0,
     });
+    const lastSentTimelineIndex = useRef(0);
 
     const speakerRegistry = useRef({});
     const callStartTime = useRef(null);
 
     const prospectSegments = useRef([]);
-    const closerSegments = useReg([]);
+    const closerSegments = useRef([]);
 
-    const lastSentSegmentIndex = useReg({
+    const lastSentSegmentIndex = useRef({
         prospect: 0,
-        cloesr: 0,
+        closer: 0,
     });
 
     const formatTime = (seconds) => {
@@ -58,6 +61,30 @@ function App() {
             speakerRegistry.current[speakerId] = `Prospect ${prospectNum}`;
         }
         return speakerRegistry.current[speakerId];
+    };
+    const formatTimestamp = (seconds) => {
+        if (seconds === null || seconds === undefined) return "00:00";
+
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+
+        return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    };
+
+    const getElapsedTime = () => {
+        if (!recordingStartTime.current) return 0;
+
+        return (Date.now() - recordingStartTime.current) / 1000;
+    };
+
+    const addToTimeline = (speaker, text, startTime, endTime) => {
+        conversationTimeline.current.push({
+            speaker,
+            text,
+            startTime: startTime ?? getElapsedTime(),
+            endTime: endTime ?? getElapsedTime(),
+            timestamp: new Date().toISOString(),
+        });
     };
 
     // Backend API URL
@@ -87,6 +114,25 @@ function App() {
         lastSentIndex.current[type] = fullText.length;
         return delta.trim();
     };
+
+    const getTimelineDelta = () => {
+        const newEntries = conversationTimeline.current.slice(
+            lastSentTimelineIndex.current,
+        );
+        lastSentTimelineIndex.current = conversationTimeline.current.length;
+        return newEntries;
+    };
+
+    const formatTimelineForAI = (entries) => {
+        return entries
+            .sort((a, b) => a.startTime - b.startTime)
+            .map(
+                (entry) =>
+                    `[${formatTimestamp(entry.startTime)}] ${entry.speaker}: ${entry.text}`,
+            )
+            .join("\n");
+    };
+
     const handleGetAISuggestion = async () => {
         const prospectDelta = getDelta(
             prospectFinalTranscript.current,
@@ -108,14 +154,16 @@ function App() {
         setAiSuggestion(null);
 
         try {
+            const formattedConversation =
+                formatTimelineForAI(getTimelineDelta());
+
             const response = await fetch(`${BACKEND_URL}/query`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     user_id: session.user.id,
-
-                    // ✅ NEW: send summary + deltas
                     conversation_summary: conversationSummary || "None",
+                    conversation_transcript: formattedConversation,
                     prospect_transcript: prospectDelta,
                     closer_transcript: closerDelta,
                 }),
@@ -156,6 +204,8 @@ function App() {
             prospectFinalTranscript.current = "";
             closerFinalTranscript.current = "";
             speakerRegistry.current = {};
+            conversationTimeline.current = [];
+            recordingStartTime.current = Date.now();
 
             await startCloserTranscription();
             await startProspectTranscription();
@@ -209,14 +259,26 @@ function App() {
             });
 
             connection.on(LiveTranscriptionEvents.Transcript, (data) => {
+                const words = data.channel.alternatives[0].words || [];
                 const transcript = data.channel.alternatives[0].transcript;
                 const isFinal = data.is_final;
 
                 if (transcript && transcript.trim() !== "") {
                     if (isFinal) {
+                        const startTime =
+                            words.length > 0
+                                ? words[0].start
+                                : getElapsedTime();
+                        const endTime =
+                            words.length > 0
+                                ? words[words.length - 1].end
+                                : getElapsedTime();
+
+                        addToTimeline("Closer", transcript, startTime, endTime);
+
                         closerFinalTranscript.current +=
                             (closerFinalTranscript.current ? " " : "") +
-                            transcript;
+                            `[${formatTimestamp(startTime)}] ${transcript}`;
                         setCloserTranscript(closerFinalTranscript.current);
                     } else {
                         setCloserTranscript(
@@ -328,13 +390,13 @@ function App() {
                             currentSegment = {
                                 speaker,
                                 text: word.punctuated_word || word.word,
-                                startTime: wordStart,
-                                endTime: wordEnd,
+                                startTime: word.start,
+                                endTime: word.end,
                             };
                         } else {
                             currentSegment.text +=
                                 " " + (word.punctuated_word || word.word);
-                            currentSegment.endTime = wordEnd;
+                            currentSegment.endTime = word.end;
                         }
                     });
                     if (currentSegment.text) {
@@ -345,8 +407,16 @@ function App() {
 
                     const formattedText = segments
                         .map((segment) => {
-                            const timeStr = `[${formatTime(segment.startTime)}]`;
-                            return `${timeStr} [${mapSpeakerLabel(segment.speaker)}] : ${segment.text}`;
+                            const speakerLabel = mapSpeakerLabel(
+                                segment.speaker,
+                            );
+                            addToTimeline(
+                                speakerLabel,
+                                segment.text,
+                                segment.startTime,
+                                segment.endTime,
+                            );
+                            return `[${formatTimestamp(segment.startTime)}] ${speakerLabel}: ${segment.text}`;
                         })
                         .join("\n");
                     prospectFinalTranscript.current +=
@@ -356,9 +426,13 @@ function App() {
                         prospectFinalTranscript.current.trim(),
                     );
                 } else if (isFinal) {
+                    const startTime =
+                        words.length > 0 ? words[0].start : getElapsedTime();
+                    addToTimeline("Prospect", transcript, startTime, startTime);
+
                     prospectFinalTranscript.current +=
                         (prospectFinalTranscript.current ? " " : "") +
-                        transcript;
+                        `[${formatTimestamp(startTime)}] ${transcript}`;
                     setProspectTranscript(prospectFinalTranscript.current);
                 } else {
                     setProspectTranscript(
@@ -372,13 +446,6 @@ function App() {
             connection.on(LiveTranscriptionEvents.Error, (error) => {
                 console.error("Prospect error:", error);
             });
-            const formatTime = (seconds) => {
-                if (seconds === null || seconds === undefined) return "00:00";
-                const mins = Math.floor(seconds / 60);
-                const secs = Math.floor(seconds % 60);
-
-                return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-            };
 
             prospectConnectionRef.current = connection;
         } catch (error) {
@@ -419,6 +486,9 @@ function App() {
         prospectFinalTranscript.current = "";
         closerFinalTranscript.current = "";
         speakerRegistry.current = {};
+        conversationTimeline.current = [];
+        recordingStartTime.current = null;
+        lastSentTimelineIndex.current = 0;
 
         lastSentIndex.current = { prospect: 0, closer: 0 };
         setConversationSummary("");
