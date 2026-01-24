@@ -1,4 +1,5 @@
 import os
+import re
 from fastapi import HTTPException
 from app.core.config import OPENAI_API_KEY
 from app.services.file_service import get_user_vector_store
@@ -11,6 +12,51 @@ llm = ChatOpenAI(
     base_url="https://openrouter.ai/api/v1",
     temperature=0.7,
 )
+
+
+def parse_timestamped_transcript(transcript: str) -> dict:
+    if not transcript:
+        return {
+            "speakers": set(),
+            "utterances": [],
+            "duration_seconds": 0,
+            "last_speaker": None,
+        }
+    pattern = r"\[(\d+:\d+)\]\s*([^:]+):\s*(.+?)(?=\[|$)"
+    matches = re.findall(pattern, transcript, re.DOTALL)
+
+    speakers = set()
+    utterances = []
+    max_time = 0
+    last_speaker = None
+
+    for timestamp, speaker, text in matches:
+        speaker = speaker.strip()
+        speakers.add(speaker)
+        last_speaker = speaker
+
+        parts = timestamp.split(":")
+        seconds = int(parts[0]) * 60 + int(parts[1])
+        max_time = max(max_time, seconds)
+
+        utterances.append(
+            {
+                "timestamp": timestamp,
+                "seconds": seconds,
+                "speaker": speaker,
+                "text": text.strip(),
+            }
+        )
+
+        return {
+            "speakers": speakers,
+            "utterances": utterances,
+            "duration_seconds": max_time,
+            "last_speaker": last_speaker,
+            "speaker_count": len(
+                [speaker for speaker in speakers if speaker.startswithd("Prospect")]
+            ),
+        }
 
 
 def retrieve_context(user_id: str, query: str, k: int = 3):
