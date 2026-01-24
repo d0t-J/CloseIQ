@@ -29,6 +29,7 @@ function App() {
         prospect: 0,
         closer: 0,
     });
+    const lastSentTimelineIndex = useRef(0);
 
     const speakerRegistry = useRef({});
 
@@ -91,6 +92,25 @@ function App() {
         lastSentIndex.current[type] = fullText.length;
         return delta.trim();
     };
+
+    const getTimelineDelta = () => {
+        const newEntries = conversationTimeline.current.slice(
+            lastSentTimelineIndex.current,
+        );
+        lastSentTimelineIndex.current = conversationTimeline.current.length;
+        return newEntries;
+    };
+
+    const formatTimelineForAI = (entries) => {
+        return entries
+            .sort((a, b) => a.startTime - b.startTime)
+            .map(
+                (entry) =>
+                    `[${formatTimestamp(entry.startTime)}] ${entry.speaker}: ${entry.text}`,
+            )
+            .join("\n");
+    };
+
     const handleGetAISuggestion = async () => {
         const prospectDelta = getDelta(
             prospectFinalTranscript.current,
@@ -112,15 +132,16 @@ function App() {
         setAiSuggestion(null);
 
         try {
+            const formattedConversation = formatTimelineForAI(getTimelineDelta);
+
             const response = await fetch(`${BACKEND_URL}/query`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     user_id: session.user.id,
-
-                    // ✅ NEW: send summary + deltas
                     conversation_summary: conversationSummary || "None",
-                    prospect_transcript: prospectDelta,
+                    convesation_transcript: formattedConversation,
+                    prospect_transcript: getDelta(pro,
                     closer_transcript: closerDelta,
                 }),
             });
