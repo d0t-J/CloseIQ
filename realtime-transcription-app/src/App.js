@@ -141,7 +141,7 @@ function App() {
                     user_id: session.user.id,
                     conversation_summary: conversationSummary || "None",
                     convesation_transcript: formattedConversation,
-                    prospect_transcript: getDelta(pro,
+                    prospect_transcript: prospectDelta,
                     closer_transcript: closerDelta,
                 }),
             });
@@ -459,6 +459,10 @@ function App() {
         setCloserTranscript("");
         prospectFinalTranscript.current = "";
         closerFinalTranscript.current = "";
+        speakerRegistry.current = {};
+        conversationTimeline.current = [];
+        recordingStartTime.current = null;
+        lastSentTimelineIndex.current = 0;
 
         lastSentIndex.current = { prospect: 0, closer: 0 };
         setConversationSummary("");
