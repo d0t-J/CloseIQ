@@ -173,10 +173,12 @@ def ai_suggestion(
 
 async def handle_query(req: QueryRequest) -> QueryResponse:
     try:
-        search_query = f"Prospect said: {req.prospect_transcript[:200]}"
+        search_text = req.conversation_transcript or req.prospect_transcript
+        search_query = f"Sales conversation: {search_text[:300]}"
         context, sources = retrieve_context(req.user_id, search_query, k=3)
 
         suggestion = ai_suggestion(
+            conversation_transcript=req.conversation_transcript or "",
             conversation_summary=req.conversation_summary,
             prospect_transcript=req.prospect_transcript,
             closer_transcript=req.closer_transcript,
@@ -189,6 +191,7 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
             next_move=suggestion["next_move"],
             conversation_summary=suggestion["conversation_summary"],
             sources=list(set(sources)),
+            speakers_detected=suggestion.get("speakers_detected", 1),
         )
 
     except Exception as e:
