@@ -236,6 +236,7 @@ function App() {
             });
 
             connection.on(LiveTranscriptionEvents.Transcript, (data) => {
+                const words = data.channel.alternatives[0].words || [];
                 const transcript = data.channel.alternatives[0].transcript;
                 const isFinal = data.is_final;
 
@@ -399,9 +400,7 @@ function App() {
                     );
                 } else if (isFinal) {
                     const startTime =
-                        words.length > 0
-                            ? words[0].startTime
-                            : getElapsedTime();
+                        words.length > 0 ? words[0].start : getElapsedTime();
                     addToTimeline("Prospect", transcript, startTime, startTime);
 
                     prospectFinalTranscript.current +=

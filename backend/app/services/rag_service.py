@@ -1,4 +1,3 @@
-import os
 import re
 from fastapi import HTTPException
 from app.core.config import OPENAI_API_KEY
@@ -48,15 +47,15 @@ def parse_timestamped_transcript(transcript: str) -> dict:
             }
         )
 
-        return {
-            "speakers": speakers,
-            "utterances": utterances,
-            "duration_seconds": max_time,
-            "last_speaker": last_speaker,
-            "speaker_count": len(
-                [speaker for speaker in speakers if speaker.startswithd("Prospect")]
-            ),
-        }
+    return {
+        "speakers": speakers,
+        "utterances": utterances,
+        "duration_seconds": max_time,
+        "last_speaker": last_speaker,
+        "speaker_count": len(
+            [speaker for speaker in speakers if speaker.startswith("Prospect")]
+        ),
+    }
 
 
 def retrieve_context(user_id: str, query: str, k: int = 3):
