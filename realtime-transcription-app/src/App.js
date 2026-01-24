@@ -22,12 +22,14 @@ function App() {
     const closerFinalTranscript = useRef("");
     const [popupOpen, setPopupOpen] = useState(false);
     const [conversationSummary, setConversationSummary] = useState("");
+    const conversationTimeline = useRef([]);
+    const recordingStartTime = useRef(null);
     // 🔹 Track last sent index for delta
     const lastSentIndex = useRef({
         prospect: 0,
         closer: 0,
     });
-
+    
     const speakerRegistry = useRef({});
 
     const mapSpeakerLabel = (speakerId) => {
