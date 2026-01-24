@@ -220,9 +220,20 @@ function App() {
 
                 if (transcript && transcript.trim() !== "") {
                     if (isFinal) {
+                        const startTime =
+                            words.length > 0
+                                ? words[0].start
+                                : getElapsedTime();
+                        const endTime =
+                            words.length > 0
+                                ? words[words.length - 1].end
+                                : getElapsedTime();
+
+                        addToTimeline("Closer", transcript, startTime, endTime);
+
                         closerFinalTranscript.current +=
                             (closerFinalTranscript.current ? " " : "") +
-                            transcript;
+                            `[${formatTimestamp(startTime)}] ${transcript}`;
                         setCloserTranscript(closerFinalTranscript.current);
                     } else {
                         setCloserTranscript(
