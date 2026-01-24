@@ -324,7 +324,12 @@ function App() {
                 ) {
                     let currentSpeaker = null;
                     let segments = [];
-                    let currentSegment = { speaker: null, text: "" };
+                    let currentSegment = {
+                        speaker: null,
+                        text: "",
+                        startTime: null,
+                        endTime: null,
+                    };
 
                     words.forEach((word) => {
                         const speaker = word.speaker ?? 0;
@@ -338,10 +343,13 @@ function App() {
                             currentSegment = {
                                 speaker,
                                 text: word.punctuated_word || word.word,
+                                startTime: word.start,
+                                endTime: word.end,
                             };
                         } else {
                             currentSegment.text +=
                                 " " + (word.punctuated_word || word.word);
+                            currentSegment.endTime = word.end;
                         }
                     });
                     if (currentSegment.text) {
@@ -349,10 +357,18 @@ function App() {
                     }
 
                     const formattedText = segments
-                        .map(
-                            (segment) =>
-                                `[${mapSpeakerLabel(segment.speaker)}]: ${segment.text}`,
-                        )
+                        .map((segment) => {
+                            const speakerLabel = mapSpeakerLabel(
+                                segment.speaker,
+                            );
+                            addToTimeline(
+                                speakerLabel,
+                                segment.text,
+                                segment.startTime,
+                                segment.endTime,
+                            );
+                            return `[${formatTimestamp(segment.startTime)}] ${speakerLabel}: ${segment.text}`;
+                        })
                         .join("\n");
                     prospectFinalTranscript.current +=
                         (prospectFinalTranscript.current ? " " : "") +
@@ -361,9 +377,15 @@ function App() {
                         prospectFinalTranscript.current.trim(),
                     );
                 } else if (isFinal) {
+                    const startTime =
+                        words.length > 0
+                            ? words[0].startTime
+                            : getElapsedTime();
+                    addToTimeline("Prospect", transcript, startTime, startTime);
+
                     prospectFinalTranscript.current +=
                         (prospectFinalTranscript.current ? " " : "") +
-                        transcript;
+                        `[${formatTimestamp(startTime)}] ${transcript}`;
                     setProspectTranscript(prospectFinalTranscript.current);
                 } else {
                     setProspectTranscript(
