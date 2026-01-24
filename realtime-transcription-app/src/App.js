@@ -29,6 +29,28 @@ function App() {
     });
 
     const speakerRegistry = useRef({});
+    const callStartTime = useRef(null);
+
+    const prospectSegments = useRef([]);
+    const closerSegments = useReg([]);
+
+    const lastSentSegmentIndex = useReg({
+        prospect: 0,
+        cloesr: 0,
+    });
+
+    const formatTime = (seconds) => {
+        if (seconds === null || seconds == undefined) return "00:00";
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+
+        return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    };
+
+    const getCallElapsedTime = () => {
+        if (!callStartTime.current) return 0;
+        return (Date.now() - callStartTime.current) / 1000;
+    };
 
     const mapSpeakerLabel = (speakerId) => {
         if (speakerRegistry.current[speakerId] === undefined) {
@@ -133,6 +155,7 @@ function App() {
 
             prospectFinalTranscript.current = "";
             closerFinalTranscript.current = "";
+            speakerRegistry.current = {};
 
             await startCloserTranscription();
             await startProspectTranscription();
@@ -284,10 +307,17 @@ function App() {
                 ) {
                     let currentSpeaker = null;
                     let segments = [];
-                    let currentSegment = { speaker: null, text: "" };
+                    let currentSegment = {
+                        speaker: null,
+                        text: "",
+                        startTime: null,
+                        endTime: null,
+                    };
 
                     words.forEach((word) => {
                         const speaker = word.speaker ?? 0;
+                        const wordStart = word.start;
+                        const wordEnd = word.end;
 
                         if (speaker !== currentSpeaker) {
                             if (currentSegment.text) {
@@ -298,24 +328,29 @@ function App() {
                             currentSegment = {
                                 speaker,
                                 text: word.punctuated_word || word.word,
+                                startTime: wordStart,
+                                endTime: wordEnd,
                             };
                         } else {
                             currentSegment.text +=
                                 " " + (word.punctuated_word || word.word);
+                            currentSegment.endTime = wordEnd;
                         }
                     });
                     if (currentSegment.text) {
                         segments.push(currentSegment);
                     }
 
+                    prospectSegments.current.push(...segments);
+
                     const formattedText = segments
-                        .map(
-                            (segment) =>
-                                `[${mapSpeakerLabel(segment.speaker)}]: ${segment.text}`,
-                        )
+                        .map((segment) => {
+                            const timeStr = `[${formatTime(segment.startTime)}]`;
+                            return `${timeStr} [${mapSpeakerLabel(segment.speaker)}] : ${segment.text}`;
+                        })
                         .join("\n");
                     prospectFinalTranscript.current +=
-                        (prospectFinalTranscript.current ? " " : "") +
+                        (prospectFinalTranscript.current ? "\n" : "") +
                         formattedText;
                     setProspectTranscript(
                         prospectFinalTranscript.current.trim(),
@@ -337,6 +372,13 @@ function App() {
             connection.on(LiveTranscriptionEvents.Error, (error) => {
                 console.error("Prospect error:", error);
             });
+            const formatTime = (seconds) => {
+                if (seconds === null || seconds === undefined) return "00:00";
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+
+                return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+            };
 
             prospectConnectionRef.current = connection;
         } catch (error) {
@@ -376,6 +418,7 @@ function App() {
         setCloserTranscript("");
         prospectFinalTranscript.current = "";
         closerFinalTranscript.current = "";
+        speakerRegistry.current = {};
 
         lastSentIndex.current = { prospect: 0, closer: 0 };
         setConversationSummary("");

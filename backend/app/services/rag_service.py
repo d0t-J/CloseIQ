@@ -1,4 +1,5 @@
 import os
+import re
 from fastapi import HTTPException
 from app.core.config import OPENAI_API_KEY
 from app.services.file_service import get_user_vector_store
@@ -12,6 +13,19 @@ llm = ChatOpenAI(
     temperature=0.7,
 )
 
+
+def parse_speaker_from_transcripts(transcript: str) -> dict:
+    pattern = r"\[([^\]]+)\]:\s*([^\[]+)"
+    matches = re.findall(pattern, transcript)
+
+    speakers = {}
+    for speaker, text in matches:
+        speaker = speaker.strip()
+        if speaker not in speakers:
+            speakers[speaker] = []
+        speakers[speaker].append(text.strip())
+
+        return speakers
 
 def retrieve_context(user_id: str, query: str, k: int = 3):
     vectorstore = get_user_vector_store(user_id)
