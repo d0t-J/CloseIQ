@@ -597,37 +597,4 @@ export function KnowledgeBasePopup({ open, onClose, session, backendUrl, enzetiL
 }
 
 // Demo wrapper
-export default function App() {
-  const [popupOpen, setPopupOpen] = useState(true);
-
-  // Mock session and backend URL for demo
-  const mockSession = {
-    user: {
-      id: "demo-user-123",
-    },
-  };
-
-  const mockBackendUrl = "https://api.example.com";
-
-  // Mock logo - replace with your actual logo import
-  const mockLogo = "https://via.placeholder.com/120x120/d4af37/000000?text=eNZeTi";
-
-  return (
-    <div className="min-h-screen bg-[#0b0b0b] flex items-center justify-center p-4">
-      <button
-        onClick={() => setPopupOpen(true)}
-        className="bg-[#d4af37] hover:bg-[#c9a227] text-black font-semibold px-6 py-3 rounded-lg transition-colors"
-      >
-        Open Knowledge Base
-      </button>
-
-      <KnowledgeBasePopup
-        open={popupOpen}
-        onClose={() => setPopupOpen(false)}
-        session={mockSession}
-        backendUrl={mockBackendUrl}
-        enzetiLogo={mockLogo}
-      />
-    </div>
-  );
-}
+export default KnowledgeBasePopup;
