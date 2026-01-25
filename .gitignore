@@ -1,0 +1,76 @@
+# General
+*.log
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+.cache/
+
+# Environment files (ignore all .env variants everywhere)
+.env
+.env.*
+**/.env
+**/.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+.python-version
+pip-wheel-metadata/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pylint.d/
+.ipynb_checkpoints/
+site/
+
+# Virtual environments
+venv/
+.venv/
+conda/
+.conda/
+env/
+.envrc
+
+# Node / Frontend
+node_modules/
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+build/
+.next/
+.vercel/
+.turbo/
+coverage/
+
+# IDE / Editor
+.idea/
+.vscode/
+
+# Project data folders (runtime artifacts)
+backend/user_files/
+backend/vector_store/
+backend/file_metadata/
