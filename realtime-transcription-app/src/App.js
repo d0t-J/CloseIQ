@@ -2,15 +2,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
 import LoginPage from "./LoginPage";
 import AISuggestions from "./AISuggestions";
-<<<<<<< HEAD
 import { KnowledgeBasePopup } from "./KnowledgeBasePopup.jsx";
 import enzetiLogo from "./assets/enzeti_logo.png";
-=======
-import FileUpload from "./FileUpload.jsx";
-import MyPopup from "./MyPopup.jsx";
-import "./App.css";
-
->>>>>>> 101b94097e4e9c76700b73f0881137582ab2c039
 function App() {
     const [session, setSession] = useState(null);
     const [isRecording, setIsRecording] = useState(false);
@@ -94,11 +87,7 @@ function App() {
 
     // Backend API URL
     const BACKEND_URL =
-<<<<<<< HEAD
         process.env.REACT_APP_BACKEND_URL || "";
-=======
-        process.env.REACT_APP_BACKEND_URL || "http://77.37.62.127:8000";
->>>>>>> 101b94097e4e9c76700b73f0881137582ab2c039
 
     useEffect(() => {
         const apiKey = process.env.REACT_APP_DEEPGRAM_API_KEY;
@@ -505,7 +494,6 @@ function App() {
     };
 
     if (!session) return <LoginPage onLogin={setSession} />;
-<<<<<<< HEAD
     
     return (
         <div className="min-h-screen bg-[#0b0b0b] text-white relative overflow-hidden">
@@ -867,95 +855,4 @@ function App() {
         </div>
     );
 }
-=======
-
-    return (
-        <div className="App">
-            <div className="container">
-                <h1>Real-Time Dual Transcription with RAG</h1>
-
-                <div className="controls">
-                    <button
-                        className={`btn ${isRecording ? "btn-stop" : "btn-start"}`}
-                        onClick={isRecording ? stopRecording : startRecording}
-                    >
-                        {isRecording ? "⏹ Stop Recording" : "▶ Start Recording"}
-                    </button>
-
-                    <button
-                        className="btn btn-clear"
-                        onClick={clearTranscripts}
-                        disabled={isRecording}
-                    >
-                        🗑 Clear
-                    </button>
-
-                    <MyPopup
-                        open={popupOpen}
-                        onClose={() => setPopupOpen(false)}
-                    >
-                        <FileUpload
-                            session={session}
-                            backendUrl={BACKEND_URL}
-                        />
-                    </MyPopup>
-
-                    <button onClick={() => setPopupOpen(true)}>
-                        📄 Upload Training Docs
-                    </button>
-
-                    <button
-                        className="btn btn-ai"
-                        onClick={handleGetAISuggestion}
-                        disabled={!isRecording || isLoadingAI}
-                    >
-                        {isLoadingAI ? "⏳ Loading..." : "🤖 Get AI Help (⌘J)"}
-                    </button>
-                </div>
-
-                <div className="main-layout">
-                    <div className="transcripts">
-                        <div className="transcript-box">
-                            <h2>Prospect Transcript</h2>
-                            <p className="subtitle">
-                                (System Audio - YouTube, Videos, etc.)
-                            </p>
-                            <textarea
-                                value={prospectTranscript}
-                                readOnly
-                                placeholder="System audio transcript will appear here..."
-                            />
-                        </div>
-
-                        <div className="transcript-box">
-                            <h2>Closer Transcript</h2>
-                            <p className="subtitle">(Your Microphone)</p>
-                            <textarea
-                                value={closerTranscript}
-                                readOnly
-                                placeholder="Your voice transcript will appear here..."
-                            />
-                        </div>
-                    </div>
-
-                    {/* AI Suggestions Panel with Sources */}
-                    <AISuggestions
-                        suggestion={aiSuggestion}
-                        isLoading={isLoadingAI}
-                    />
-                </div>
-
-                <div className="status">
-                    <span
-                        className={`status-indicator ${isRecording ? "recording" : ""}`}
-                    >
-                        {isRecording ? "🔴 Recording..." : "⚪ Stopped"}
-                    </span>
-                </div>
-            </div>
-        </div>
-    );
-}
-
->>>>>>> 101b94097e4e9c76700b73f0881137582ab2c039
 export default App;

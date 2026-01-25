@@ -1,5 +1,4 @@
 import React from "react";
-<<<<<<< HEAD
 
 function AISuggestions({ suggestion, isLoading }) {
     // Loading state
@@ -10,26 +9,12 @@ function AISuggestions({ suggestion, isLoading }) {
                     <div className="w-8 h-8 mb-4 border-2 border-[#d4af37] border-t-transparent rounded-full animate-spin" />
                     <p className="text-sm text-center">
                         Analyzing conversation and retrieving relevant insights…
-=======
-import "./AISuggestions.css";
-
-function AISuggestions({ suggestion, isLoading }) {
-    if (isLoading) {
-        return (
-            <div className="ai-suggestions-panel loading">
-                <div className="loading-spinner">
-                    <div className="spinner"></div>
-                    <p>
-                        🤖 Analyzing conversation and retrieving relevant
-                        training materials...
->>>>>>> 101b94097e4e9c76700b73f0881137582ab2c039
                     </p>
                 </div>
             </div>
         );
     }
 
-<<<<<<< HEAD
     // Empty state
     if (!suggestion) {
         return (
@@ -54,30 +39,6 @@ function AISuggestions({ suggestion, isLoading }) {
                         </div>
                         <div className="bg-[#0a0a0a] border border-[#262626] rounded-xl p-4 text-sm text-slate-300">
                             🎯 Next Move
-=======
-    if (!suggestion) {
-        return (
-            <div className="ai-suggestions-panel empty">
-                <div className="empty-state">
-                    <h2>🤖 AI Sales Suggestion</h2>
-                    <p>
-                        Press <kbd>⌘J</kbd> (Mac) or <kbd>Ctrl+J</kbd> (Windows)
-                        during the call to get real-time AI coaching based on
-                        your training documents.
-                    </p>
-                    <div className="features">
-                        <div className="feature">
-                            <span className="icon">💬</span>
-                            <span>What to Say Next</span>
-                        </div>
-                        <div className="feature">
-                            <span className="icon">🧠</span>
-                            <span>Why It Works</span>
-                        </div>
-                        <div className="feature">
-                            <span className="icon">🎯</span>
-                            <span>Next Move Strategy</span>
->>>>>>> 101b94097e4e9c76700b73f0881137582ab2c039
                         </div>
                     </div>
                 </div>
@@ -85,7 +46,6 @@ function AISuggestions({ suggestion, isLoading }) {
         );
     }
 
-<<<<<<< HEAD
     // Active suggestion state
     return (
         <div className="bg-[#141414] border border-[#262626] rounded-2xl p-6 space-y-6">
@@ -122,33 +82,11 @@ function AISuggestions({ suggestion, isLoading }) {
                             💡 WHY IT WORKS
                         </h3>
                         <p className="text-sm text-slate-200 leading-relaxed">
-=======
-    return (
-        <div className="ai-suggestions-panel active">
-            <div className="suggestion-header">
-                <h2>🤖 AI Sales Suggestion</h2>
-                <span className="timestamp">
-                    {new Date(suggestion.timestamp).toLocaleTimeString()}
-                </span>
-            </div>
-
-            <div className="suggestion-content">
-                <div className="suggestion-section primary">
-                    <h3>💬 What to Say</h3>
-                    <p className="suggestion-text">{suggestion.whatToSay}</p>
-                </div>
-
-                {suggestion.whyItWorks && (
-                    <div className="suggestion-section">
-                        <h3>🧠 Why It Works</h3>
-                        <p className="suggestion-text">
->>>>>>> 101b94097e4e9c76700b73f0881137582ab2c039
                             {suggestion.whyItWorks}
                         </p>
                     </div>
                 )}
 
-<<<<<<< HEAD
                 {/* Next Move */}
                 {suggestion.nextMove && (
                     <div className="border border-purple-500/30 bg-purple-500/5 rounded-xl p-4">
@@ -166,38 +104,11 @@ function AISuggestions({ suggestion, isLoading }) {
                             <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-300">
                                 DIAGNOSIS
                             </span>
-=======
-                {suggestion.nextMove && (
-                    <div className="suggestion-section">
-                        <h3>🎯 Next Move</h3>
-                        <p className="suggestion-text">{suggestion.nextMove}</p>
-                    </div>
-                )}
-                {suggestion.conversationSummary && (
-                    <div className="suggestion-section summary">
-                        <h3>📝 Conversation Summary</h3>
-                        <p className="suggestion-text">
-                            {suggestion.conversationSummary}
-                        </p>
-                    </div>
-                )}
-
-                {suggestion.sources && suggestion.sources.length > 0 && (
-                    <div className="suggestion-section sources">
-                        <h3>📚 Based on Training Materials</h3>
-                        <div className="sources-list">
-                            {suggestion.sources.map((source, index) => (
-                                <span key={index} className="source-tag">
-                                    📄 {source}
-                                </span>
-                            ))}
->>>>>>> 101b94097e4e9c76700b73f0881137582ab2c039
                         </div>
                     </div>
                 )}
             </div>
 
-<<<<<<< HEAD
             {/* Conversation Summary */}
             {suggestion.conversationSummary && (
                 <div className="border border-[#262626] bg-[#0a0a0a] rounded-xl p-4">
@@ -227,12 +138,6 @@ function AISuggestions({ suggestion, isLoading }) {
             {/* Footer */}
             <div className="text-xs text-slate-500 text-center pt-2">
                 Tip: Upload more training documents to improve coaching quality
-=======
-            <div className="suggestion-footer">
-                <small>
-                    💡 Tip: Upload more training docs to get better suggestions
-                </small>
->>>>>>> 101b94097e4e9c76700b73f0881137582ab2c039
             </div>
         </div>
     );
