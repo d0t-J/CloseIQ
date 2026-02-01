@@ -3,7 +3,11 @@ from fastapi import HTTPException
 from app.core.config import OPENAI_API_KEY
 from app.services.file_service import get_user_vector_store
 from langchain_openai import ChatOpenAI
+
 from app.models.api_models import QueryRequest, QueryResponse
+from app.services.deal_engine.state import DealState
+from app.services.deal_engine.perception import update_state_from_transcript
+
 
 llm = ChatOpenAI(
     model="openai/gpt-4o-mini",
@@ -83,6 +87,7 @@ def retrieve_context(user_id: str, query: str, k: int = 3):
 
 
 def ai_suggestion(
+    deal_state: DealState,
     conversation_summary: str,
     conversation_transcript: str,
     prospect_transcript: str,
@@ -103,52 +108,19 @@ def ai_suggestion(
             speaker_info += f"\nLast speaker was: {parsed['last_speaker']}"
 
     prompt = f"""
-    You are a real-time sales copilot helping a closer during a live call.
+            You are a real-time sales copilot helping a closer during a live call.
 
-    SPEAKER DIARIZATION INFO:
-    {speaker_info if speaker_info else "Single prospect detected."}
+            CURRENT DEAL STATE (SYSTEM GENERATED — DO NOT OVERRIDE):
+            - Deal Stage: {deal_state.stage}%
+            - Objection Level: {deal_state.objection_level}
+            - Payment Discussed: {deal_state.payment_discussed}
 
-    The transcript below includes TIMESTAMPS [MM:SS] showing when each statement was made.
-    This helps you understand the conversation flow and timing.
+            IMPORTANT:
+            - You MUST respect this deal state
+            - DO NOT reclassify the stage or objection
+            - Your job is ONLY to decide what to say NEXT
 
-    You will be given:
-    1) A short summary of the conversation so far (if available)
-    2) NEW timestamped transcript showing the conversation flow
-    3) Training context (optional)
-
-    IMPORTANT RULES:
-    - Use timestamps to understand conversation FLOW and PACE
-    - If someone spoke recently (last few seconds), they're likely still engaged
-    - Pay attention to WHO said what - especially if multiple prospects
-    - The closer is always one person
-    - If one prospect has concerns while another is interested, address strategically
-    - NEVER repeat old transcript
-    - Treat the summary as the ONLY memory of past conversation
-    - Keep responses short and actionable
-
-    Generate EXACTLY four sections in this order:
-
-    What to Say:
-    Why It Works:
-    Next Move:
-    Conversation Summary:
-
-    --------------------------------
-
-    PREVIOUS CONVERSATION SUMMARY:
-    {conversation_summary if conversation_summary else "None"}
-
-    --------------------------------
-
-    NEW CONVERSATION (with timestamps):
-    {conversation_transcript if conversation_transcript else "No new conversation"}
-
-    --------------------------------
-
-    TRAINING CONTEXT:
-    {context if context else "None"}
-
-    --------------------------------
+            --------------------------------
 """
 
     response = llm.invoke(prompt)
@@ -190,7 +162,14 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
         search_query = f"Sales conversation: {search_text[:300]}"
         context, sources = retrieve_context(req.user_id, search_query, k=3)
 
+        deal_state = DealState()
+
+        deal_state = update_state_from_transcript(
+            deal_state, req.conversation_summary or ""
+        )
+
         suggestion = ai_suggestion(
+            deal_state=deal_state,
             conversation_transcript=req.conversation_transcript or "",
             conversation_summary=req.conversation_summary,
             prospect_transcript=req.prospect_transcript,
