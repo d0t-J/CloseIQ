@@ -15,6 +15,7 @@ llm = ChatOpenAI(
     api_key=OPENAI_API_KEY,
     base_url="https://openrouter.ai/api/v1",
     temperature=0.7,
+    request_timeout=1.5,
 )
 
 
@@ -26,8 +27,16 @@ def parse_timestamped_transcript(transcript: str) -> dict:
             "duration_seconds": 0,
             "last_speaker": None,
         }
-    pattern = r"\[(\d+:\d+)\]\s*([^:]+):\s*(.+?)(?=\[|$)"
-    matches = re.findall(pattern, transcript, re.DOTALL)
+    pattern = r"\[(\d{1,2}:\d{2})\]\s*([^:\[\]]+):\s*([^\[]+?)(?=\[|$)"
+    try:
+        matches = re.findall(pattern, transcript[:5000], re.MULTILINE)
+    except re.error:
+        return {
+            "speakers": set(),
+            "utterances": [],
+            "duration_seconds": 0,
+            "last_speaker": None,
+        }
 
     speakers = set()
     utterances = []
@@ -74,7 +83,7 @@ def parse_speaker_from_transcripts(transcript: str) -> dict:
             speakers[speaker] = []
         speakers[speaker].append(text.strip())
 
-        return speakers
+    return speakers
 
 
 def retrieve_context(user_id: str, query: str, k: int = 3):
@@ -120,6 +129,9 @@ def ai_suggestion(
             DECISION (FIXED):
             Intent: {decision_intent.value}
 
+            SPEAKER CONTEXT:
+            {speaker_info}
+
             RULES:
             - Do NOT change intent or state
             - Only phrase language to execute the intent
@@ -137,7 +149,19 @@ def ai_suggestion(
             Knowledge: {context or "None"}
 """
 
-    response = llm.invoke(prompt)
+    try:
+        response = llm.invoke(prompt)
+    except Exception as e:
+        if "timeout" in str(e).lower:
+            print(f"LLM timeout: {str(e)}")
+        else:
+            print(f"LLM invocation failed: {str(e)}")
+        return {
+            "what_to_say": "Let's lock in the next step so we don't lose momentum.",
+            "why_it_works": "Keeps control even if the system stalls.",
+            "next_move": "Ask for availability or commitment.",
+            "speakers_detected": parsed.get("speaker_count", 1),
+        }
     content = response.content
 
     sections = {"what": "", "why": "", "next": "", "summary": ""}
@@ -165,7 +189,7 @@ def ai_suggestion(
         "what_to_say": sections["what"].strip(),
         "why_it_works": sections["why"].strip(),
         "next_move": sections["next"].strip(),
-        "conversation_summary": sections["summary"].strip(),
+        # "conversation_summary": sections["summary"].strip(),
         "speakers_detected": parsed.get("speaker_count", 1),
     }
 
@@ -196,9 +220,10 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
 
         suggestion = ai_suggestion(
             deal_state=deal_state,
-            decision_intent=intent.value,
+            decision_intent=intent,
             conversation_transcript=req.conversation_transcript or "",
-            conversation_summary=req.conversation_summary,
+            # conversation_summary=req.conversation_summary,
+            conversation_summary="",
             prospect_transcript=req.prospect_transcript,
             closer_transcript=req.closer_transcript,
             context=context,
@@ -208,7 +233,7 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
             what_to_say=suggestion["what_to_say"],
             why_it_works=suggestion["why_it_works"],
             next_move=suggestion["next_move"],
-            conversation_summary=suggestion["conversation_summary"],
+            # conversation_summary=suggestion["conversation_summary"],
             sources=list(set(sources)),
             speakers_detected=suggestion.get("speakers_detected", 1),
         )

@@ -1,7 +1,7 @@
 from app.services.deal_engine.state import DealState
 
 
-def update_state_from_transcript(deal_state: DealState, transcript: str) -> str:
+def update_state_from_transcript(deal_state: DealState, transcript: str) -> DealState:
     if not transcript:
         return deal_state
 
@@ -28,7 +28,7 @@ def update_state_from_transcript(deal_state: DealState, transcript: str) -> str:
         deal_state.commitment_level = min(1.0, deal_state.commitment_level + 0.2)
 
     if any(word in text for word in ["hi", "hello", "just looking"]):
-        deal_state.stage = max(deal_state.state, 20)
+        deal_state.stage = max(deal_state.stage, 20)
 
     if "payment" in text or "pay" in text:
         deal_state.payment_discussed = True
