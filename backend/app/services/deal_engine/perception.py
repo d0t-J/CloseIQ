@@ -15,7 +15,7 @@ def update_state_from_transcript(deal_state: DealState, transcript: str) -> str:
         word in text for word in ["need to think", "let me think", "get back to you"]
     ):
         deal_state.stage = max(deal_state.stage, 55)
-        deal_state.objection_level = "Surface"
+        deal_state.objection_level = infer_basic_objection_level(transcript)
 
     if any(
         word in text
@@ -35,3 +35,24 @@ def update_state_from_transcript(deal_state: DealState, transcript: str) -> str:
         deal_state.payment_discussed = True
 
     return deal_state
+
+def infer_basic_objection_level(transcript: str) -> str:
+    if not transcript:
+        return "None"
+
+    text = transcript.lower()
+
+    surface = ["need to think", "send me", "get back to you", "talk to my"]
+
+    logical = ["too expensive", "price", "cost", "budget", "compare"]
+
+    core = ["not sure this is for me", "worried", "scared", "failed before"]
+
+    if any(p in text for p in surface):
+        return "Surface"
+    if any(p in text for p in logical):
+        return "Logical"
+    if any(p in text for p in core):
+        return "Core"
+
+    return "None"
