@@ -120,6 +120,16 @@ def ai_suggestion(
                 DECISION (ALREADY MADE BY SYSTEM):
                 - Intent: {decision_intent.value}
 
+                PREVIOUS CONVERSATION SUMMARY:
+                {conversation_summary if conversation_summary else "None"}
+
+                NEW CONVERSATION (with timestamps):
+                {conversation_transcript if conversation_transcript else "No new conversation"}
+
+                TRAINING CONTEXT:
+                {context if context else "None"}
+
+
                 YOUR ROLE:
                 - You are NOT allowed to change the intent
                 - You are NOT allowed to reclassify the deal
