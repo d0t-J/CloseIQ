@@ -8,6 +8,7 @@ from app.models.api_models import QueryRequest, QueryResponse
 from app.services.deal_engine.state import DealState
 from app.services.deal_engine.perception import update_state_from_transcript
 from app.services.deal_engine.decision import DecisionIntent, decide_next_intent
+from app.services.deal_engine.session_store import get_deal_state, set_deal_state
 
 
 llm = ChatOpenAI(
@@ -196,14 +197,17 @@ def ai_suggestion(
 
 async def handle_query(req: QueryRequest) -> QueryResponse:
     try:
-        search_text = req.conversation_transcript or req.prospect_transcript
-        search_query = f"Sales conversation: {search_text[:300]}"
+        session_key = req.session_id if req.session_id else req.user_id
 
-        deal_state = DealState()
+        deal_state = get_deal_state(session_key)
 
         deal_state = update_state_from_transcript(
             deal_state, req.conversation_transcript or ""
         )
+        set_deal_state(session_key, deal_state)
+
+        search_text = req.conversation_transcript or req.prospect_transcript
+        search_query = f"Sales conversation: {search_text[:300]}"
 
         intent = decide_next_intent(deal_state)
 

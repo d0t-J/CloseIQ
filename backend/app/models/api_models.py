@@ -12,6 +12,7 @@ class FileMetadata(BaseModel):
 
 class QueryRequest(BaseModel):
     user_id: str
+    session_id: Optional[str] = None
     #? conversation_summary: Optional[str] = None
     conversation_transcript: Optional[str] = None
     prospect_transcript: str
