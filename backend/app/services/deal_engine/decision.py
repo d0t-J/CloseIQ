@@ -11,7 +11,13 @@ class DecisionIntent(str, Enum):
 
 
 def decide_next_intent(deal_state: DealState) -> DecisionIntent:
-    if deal_state.objection_level in ["Surface", "Logical", "Core"]:
+    if deal_state.objection_level == "Core":
+        return DecisionIntent.HANDLE_OBJECTION
+    if deal_state.objection_level == "Logical":
+        return DecisionIntent.HANDLE_OBJECTION
+    if deal_state.objection_level == "Surface":
+        if deal_state.stage >= 80:
+            return DecisionIntent.TRIAL_CLOSE
         return DecisionIntent.HANDLE_OBJECTION
 
     if deal_state.stage >= 80:
