@@ -1,4 +1,7 @@
+import re
+
 from app.services.deal_engine.state import DealState
+
 
 
 def update_state_from_transcript(deal_state: DealState, transcript: str) -> DealState:
@@ -36,10 +39,11 @@ def update_state_from_transcript(deal_state: DealState, transcript: str) -> Deal
     return deal_state
 
 def infer_basic_objection_level(transcript: str) -> str:
-    if not transcript:
+    prospect_text = extract_prospect_utterances(transcript)
+    
+    if not prospect_text:
         return "None"
 
-    text = transcript.lower()
 
     surface = ["need to think", "send me", "get back to you", "talk to my"]
 
@@ -47,11 +51,21 @@ def infer_basic_objection_level(transcript: str) -> str:
 
     core = ["not sure this is for me", "worried", "scared", "failed before"]
 
-    if any(p in text for p in surface):
+    if any(p in prospect_text for p in surface):
         return "Surface"
-    if any(p in text for p in logical):
+    if any(p in prospect_text for p in logical):
         return "Logical"
-    if any(p in text for p in core):
+    if any(p in prospect_text for p in core):
         return "Core"
 
     return "None"
+
+def extract_prospect_utterances(transcript: str) -> str:
+    if not transcript:
+        return ""
+
+    pattern = r"\[(\d{1,2}:\d{2})\]\s*(Prospect[^:]*):\s*(.+?)(?=\[(\d{1,2}:\d{2})\]|$)"
+    matches = re.findall(pattern, transcript, re.DOTALL)
+
+    prospect_lines = [text.strip() for _, text in matches]
+    return " ".join(prospect_lines).lower()
