@@ -7,6 +7,7 @@ from langchain_openai import ChatOpenAI
 from app.models.api_models import QueryRequest, QueryResponse
 from app.services.deal_engine.state import DealState
 from app.services.deal_engine.perception import update_state_from_transcript
+from app.services.deal_engine.decision import DecisionIntent, decide_next_intent
 
 
 llm = ChatOpenAI(
@@ -88,6 +89,7 @@ def retrieve_context(user_id: str, query: str, k: int = 3):
 
 def ai_suggestion(
     deal_state: DealState,
+    decision_intent: DecisionIntent,
     conversation_summary: str,
     conversation_transcript: str,
     prospect_transcript: str,
@@ -108,19 +110,35 @@ def ai_suggestion(
             speaker_info += f"\nLast speaker was: {parsed['last_speaker']}"
 
     prompt = f"""
-            You are a real-time sales copilot helping a closer during a live call.
+                You are a real-time sales copilot helping a closer during a live call.
 
-            CURRENT DEAL STATE (SYSTEM GENERATED — DO NOT OVERRIDE):
-            - Deal Stage: {deal_state.stage}%
-            - Objection Level: {deal_state.objection_level}
-            - Payment Discussed: {deal_state.payment_discussed}
+                SYSTEM STATE (AUTHORITATIVE — DO NOT OVERRIDE):
+                - Deal Stage: {deal_state.stage}%
+                - Objection Level: {deal_state.objection_level}
+                - Payment Discussed: {deal_state.payment_discussed}
 
-            IMPORTANT:
-            - You MUST respect this deal state
-            - DO NOT reclassify the stage or objection
-            - Your job is ONLY to decide what to say NEXT
+                DECISION (ALREADY MADE BY SYSTEM):
+                - Intent: {decision_intent.value}
 
-            --------------------------------
+                YOUR ROLE:
+                - You are NOT allowed to change the intent
+                - You are NOT allowed to reclassify the deal
+                - You must ONLY phrase language that executes the intent
+
+                INTENT DEFINITIONS:
+                - BUILD_RAPPORT → Ask light, open-ended questions to build comfort
+                - HANDLE_OBJECTION → Address the objection directly and move forward
+                - TRIAL_CLOSE → Ask for a decision or commitment
+                - PUSH_PAYMENT → Transition into payment discussion confidently
+                - CLARIFY_NEXT_STEP → Lock in a concrete next action
+
+                OUTPUT FORMAT (STRICT):
+                What to Say:
+                Why It Works:
+                Next Move:
+                Conversation Summary:
+
+                --------------------------------
 """
 
     response = llm.invoke(prompt)
@@ -168,8 +186,11 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
             deal_state, req.conversation_summary or ""
         )
 
+        intent = decide_next_intent(deal_state)
+
         suggestion = ai_suggestion(
             deal_state=deal_state,
+            decision_intent=intent.value,
             conversation_transcript=req.conversation_transcript or "",
             conversation_summary=req.conversation_summary,
             prospect_transcript=req.prospect_transcript,
