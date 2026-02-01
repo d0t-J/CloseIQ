@@ -188,7 +188,6 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
     try:
         search_text = req.conversation_transcript or req.prospect_transcript
         search_query = f"Sales conversation: {search_text[:300]}"
-        context, sources = retrieve_context(req.user_id, search_query, k=3)
 
         deal_state = DealState()
 
@@ -197,6 +196,17 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
         )
 
         intent = decide_next_intent(deal_state)
+
+        use_rag = intent in [
+            DecisionIntent.HANDLE_OBJECTION,
+            DecisionIntent.PUSH_PAYMENT,
+        ]
+
+        context = ""
+        sources = []
+
+        if use_rag:
+            context, sources = retrieve_context(req.user_id, search_query, k=3)
 
         suggestion = ai_suggestion(
             deal_state=deal_state,
