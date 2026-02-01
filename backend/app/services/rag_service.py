@@ -110,45 +110,31 @@ def ai_suggestion(
             speaker_info += f"\nLast speaker was: {parsed['last_speaker']}"
 
     prompt = f"""
-                You are a real-time sales copilot helping a closer during a live call.
+            You are a real-time sales copilot.
 
-                SYSTEM STATE (AUTHORITATIVE — DO NOT OVERRIDE):
-                - Deal Stage: {deal_state.stage}%
-                - Objection Level: {deal_state.objection_level}
-                - Payment Discussed: {deal_state.payment_discussed}
+            SYSTEM STATE (AUTHORITATIVE):
+            Stage: {deal_state.stage}%
+            Objection: {deal_state.objection_level}
+            Payment Discussed: {deal_state.payment_discussed}
 
-                DECISION (ALREADY MADE BY SYSTEM):
-                - Intent: {decision_intent.value}
+            DECISION (FIXED):
+            Intent: {decision_intent.value}
 
-                PREVIOUS CONVERSATION SUMMARY:
-                {conversation_summary if conversation_summary else "None"}
+            RULES:
+            - Do NOT change intent or state
+            - Only phrase language to execute the intent
+            - Be concise, direct, and spoken
 
-                NEW CONVERSATION (with timestamps):
-                {conversation_transcript if conversation_transcript else "No new conversation"}
+            FORMAT:
+            What to Say:
+            Why It Works:
+            Next Move:
+            Conversation Summary:
 
-                TRAINING CONTEXT:
-                {context if context else "None"}
-
-
-                YOUR ROLE:
-                - You are NOT allowed to change the intent
-                - You are NOT allowed to reclassify the deal
-                - You must ONLY phrase language that executes the intent
-
-                INTENT DEFINITIONS:
-                - BUILD_RAPPORT → Ask light, open-ended questions to build comfort
-                - HANDLE_OBJECTION → Address the objection directly and move forward
-                - TRIAL_CLOSE → Ask for a decision or commitment
-                - PUSH_PAYMENT → Transition into payment discussion confidently
-                - CLARIFY_NEXT_STEP → Lock in a concrete next action
-
-                OUTPUT FORMAT (STRICT):
-                What to Say:
-                Why It Works:
-                Next Move:
-                Conversation Summary:
-
-                --------------------------------
+            CONTEXT:
+            Summary: {conversation_summary or "None"}
+            Transcript: {conversation_transcript or "None"}
+            Knowledge: {context or "None"}
 """
 
     response = llm.invoke(prompt)
