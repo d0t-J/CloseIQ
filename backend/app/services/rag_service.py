@@ -183,7 +183,7 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
         deal_state = DealState()
 
         deal_state = update_state_from_transcript(
-            deal_state, req.conversation_summary or ""
+            deal_state, req.conversation_transcript or ""
         )
 
         intent = decide_next_intent(deal_state)

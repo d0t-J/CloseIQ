@@ -11,11 +11,11 @@ class DecisionIntent(str, Enum):
 
 
 def decide_next_intent(deal_state: DealState) -> DecisionIntent:
-    if deal_state.stage >= 80:
-        return DecisionIntent.TRIAL_CLOSE
-
     if deal_state.objection_level in ["Surface", "Logical", "Core"]:
         return DecisionIntent.HANDLE_OBJECTION
+
+    if deal_state.stage >= 80:
+        return DecisionIntent.TRIAL_CLOSE
 
     if deal_state.payment_discussed and deal_state.stage >= 60:
         return DecisionIntent.PUSH_PAYMENT
