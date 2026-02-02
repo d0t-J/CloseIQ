@@ -1,4 +1,6 @@
 import re
+import asyncio
+
 from fastapi import HTTPException
 from app.core.config import OPENAI_API_KEY
 from app.services.file_service import get_user_vector_store
@@ -96,8 +98,11 @@ def retrieve_context(user_id: str, query: str, k: int = 3):
     sources = [doc.metadata.get("source", "Unknown") for doc in docs]
     return context, sources
 
+async def retrieve_context_async(user_id: str, query: str, k: int = 3):
+    return await asyncio.to_thread(retrieve_context, user_id, query, k)
 
-def ai_suggestion(
+
+async def ai_suggestion(
     deal_state: DealState,
     decision_intent: DecisionIntent,
     conversation_summary: str,
@@ -148,10 +153,10 @@ def ai_suggestion(
             Summary: {conversation_summary or "None"}
             Transcript: {conversation_transcript or "None"}
             Knowledge: {context or "None"}
-"""
+        """
 
     try:
-        response = llm.invoke(prompt)
+        response = await llm.ainvoke(prompt)
     except Exception as e:
         if "timeout" in str(e).lower:
             print(f"LLM timeout: {str(e)}")
@@ -220,9 +225,9 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
         sources = []
 
         if use_rag:
-            context, sources = retrieve_context(req.user_id, search_query, k=3)
+            context, sources = await retrieve_context_async(req.user_id, search_query, k=3)
 
-        suggestion = ai_suggestion(
+        suggestion = await ai_suggestion(
             deal_state=deal_state,
             decision_intent=intent,
             conversation_transcript=req.conversation_transcript or "",
