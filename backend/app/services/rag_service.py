@@ -1,17 +1,24 @@
 import re
 import asyncio
+import threading
 
+from copy import deepcopy
+from collections import OrderedDict
 from fastapi import HTTPException
-from app.core.config import OPENAI_API_KEY
-from app.services.file_service import get_user_vector_store
 from langchain_openai import ChatOpenAI
 
+from app.core.config import OPENAI_API_KEY
+from app.services.file_service import get_user_vector_store
 from app.models.api_models import QueryRequest, QueryResponse
 from app.services.deal_engine.state import DealState
 from app.services.deal_engine.perception import update_state_from_transcript
 from app.services.deal_engine.decision import DecisionIntent, decide_next_intent
 from app.services.deal_engine.session_store import get_deal_state, set_deal_state
 
+PARSE_TRANSCRIPT_MAX_CHARS = 5000
+_parse_cache: OrderedDict = OrderedDict()
+_parse_cache_lock = threading.Lock()
+_parse_cache_max_size = 256
 
 llm = ChatOpenAI(
     model="openai/gpt-4o-mini",
@@ -21,32 +28,31 @@ llm = ChatOpenAI(
     request_timeout=1.5,
 )
 
-
-def parse_timestamped_transcript(transcript: str) -> dict:
+def _parsed_timestamped_transcript_impl(transcript: str) -> dict:
     if not transcript:
         return {
-            "speakers": set(),
-            "utterances": [],
-            "duration_seconds": 0,
-            "last_speaker": None,
+        "speakers": set(),
+        "utterances": [],
+        "duration_seconds": 0,
+        "last_speaker": None
         }
     pattern = r"\[(\d{1,2}:\d{2})\]\s*([^:\[\]]+):\s*([^\[]+?)(?=\[|$)"
+
     try:
-        matches = re.findall(pattern, transcript[:5000], re.MULTILINE)
+        matches = re.findall(pattern, transcript[:PARSE_TRANSCRIPT_MAX_CHARS], re.MULTILINE)
     except re.error:
         return {
-            "speakers": set(),
-            "utterances": [],
-            "duration_seconds": 0,
-            "last_speaker": None,
+                "speakers": set(),
+                "utterances": [],
+                "duration_seconds": 0,
+                "last_speaker": None,
         }
-
     speakers = set()
     utterances = []
     max_time = 0
     last_speaker = None
 
-    for timestamp, speaker, text in matches:
+    for timestamp, speaker, text in matches: 
         speaker = speaker.strip()
         speakers.add(speaker)
         last_speaker = speaker
@@ -70,10 +76,25 @@ def parse_timestamped_transcript(transcript: str) -> dict:
         "duration_seconds": max_time,
         "last_speaker": last_speaker,
         "speaker_count": len(
-            [speaker for speaker in speakers if speaker.startswith("Prospect")]
+            [s for s in speakers if s.startswith("Prospect")]
         ),
     }
 
+
+def parse_timestamped_transcript(transcript: str) -> dict:
+    key = transcript[:PARSE_TRANSCRIPT_MAX_CHARS] if transcript else ""
+
+    with _parse_cache_lock:
+        if key in _parse_cache:
+            return deepcopy(_parse_cache[key])
+
+    result = _parsed_timestamped_transcript_impl(transcript)
+
+    with _parse_cache_lock: 
+        _parse_cache[key] = result
+        if len(_parse_cache) > _parse_cache_max_size:
+            _parse_cache.popitem(last = False)
+        return deepcopy(result)
 
 def parse_speaker_from_transcripts(transcript: str) -> dict:
     pattern = r"\[([^\]]+)\]:\s*([^\[]+)"
