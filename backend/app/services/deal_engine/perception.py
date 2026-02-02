@@ -2,13 +2,15 @@ import re
 
 from app.services.deal_engine.state import DealState
 
+RECENT_TRANSCRIPT_CHARS = 5000
 
 
 def update_state_from_transcript(deal_state: DealState, transcript: str) -> DealState:
     if not transcript:
         return deal_state
 
-    text = transcript[-5000:].lower()
+    recent = transcript[-RECENT_TRANSCRIPT_CHARS:]
+    text = recent.lower()
 
     if any(word in text for word in ["price", "cost", "payment", "invest"]):
         deal_state.stage = max(deal_state.stage, 70)
@@ -17,7 +19,7 @@ def update_state_from_transcript(deal_state: DealState, transcript: str) -> Deal
         word in text for word in ["need to think", "let me think", "get back to you"]
     ):
         deal_state.stage = max(deal_state.stage, 55)
-        deal_state.objection_level = infer_basic_objection_level(transcript)
+        deal_state.objection_level = infer_basic_objection_level(recent)
 
     if any(
         word in text
@@ -65,7 +67,7 @@ def extract_prospect_utterances(transcript: str) -> str:
         return ""
 
     pattern = r"\[(\d{1,2}:\d{2})\]\s*(Prospect[^:]*):\s*(.+?)(?=\[(\d{1,2}:\d{2})\]|$)"
-    matches = re.findall(pattern, transcript[-5000:], re.DOTALL)
+    matches = re.findall(pattern, transcript, re.DOTALL)
 
     prospect_lines = [text.strip() for _, text in matches]
     return " ".join(prospect_lines).lower()
