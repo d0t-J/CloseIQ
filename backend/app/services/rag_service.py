@@ -269,4 +269,11 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI suggestion failed: {str(e)}")
+        print(f"AI suggestion failed: {str(e)}")
+        return QueryResponse(
+            what_to_say = "Let's lock in the next step so we don't lose momentum.",
+            why_it_works= "Keeps controls even if system stalls.",
+            next_move= "Ask for availability or commitment.",
+            sources = [],
+            speakers_detected = 1,
+        )
