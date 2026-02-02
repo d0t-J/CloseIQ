@@ -1,4 +1,4 @@
-from app.services.deal_engine import DealState
+from app.services.deal_engine.state import DealState
 
 
 def compute_close_probability(deal_state: DealState) -> float:
@@ -16,7 +16,7 @@ def compute_close_probability(deal_state: DealState) -> float:
     probability += deal_state.commitment_level * 0.2
 
     if deal_state.payment_discussed:
-        probability *= 0.1
+        probability += 0.1
 
     probability = max(0.0, min(1.0, probability))
 

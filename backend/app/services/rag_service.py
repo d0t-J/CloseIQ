@@ -14,6 +14,7 @@ from app.services.deal_engine.state import DealState
 from app.services.deal_engine.perception import update_state_from_transcript
 from app.services.deal_engine.decision import DecisionIntent, decide_next_intent
 from app.services.deal_engine.session_store import get_deal_state, set_deal_state
+from app.services.intelligence.close_probability import compute_close_probability
 
 PARSE_TRANSCRIPT_MAX_CHARS = 5000
 _parse_cache: OrderedDict = OrderedDict()
@@ -28,31 +29,34 @@ llm = ChatOpenAI(
     request_timeout=1.5,
 )
 
+
 def _parsed_timestamped_transcript_impl(transcript: str) -> dict:
     if not transcript:
         return {
-        "speakers": set(),
-        "utterances": [],
-        "duration_seconds": 0,
-        "last_speaker": None
+            "speakers": set(),
+            "utterances": [],
+            "duration_seconds": 0,
+            "last_speaker": None,
         }
     pattern = r"\[(\d{1,2}:\d{2})\]\s*([^:\[\]]+):\s*([^\[]+?)(?=\[|$)"
 
     try:
-        matches = re.findall(pattern, transcript[:PARSE_TRANSCRIPT_MAX_CHARS], re.MULTILINE)
+        matches = re.findall(
+            pattern, transcript[:PARSE_TRANSCRIPT_MAX_CHARS], re.MULTILINE
+        )
     except re.error:
         return {
-                "speakers": set(),
-                "utterances": [],
-                "duration_seconds": 0,
-                "last_speaker": None,
+            "speakers": set(),
+            "utterances": [],
+            "duration_seconds": 0,
+            "last_speaker": None,
         }
     speakers = set()
     utterances = []
     max_time = 0
     last_speaker = None
 
-    for timestamp, speaker, text in matches: 
+    for timestamp, speaker, text in matches:
         speaker = speaker.strip()
         speakers.add(speaker)
         last_speaker = speaker
@@ -75,9 +79,7 @@ def _parsed_timestamped_transcript_impl(transcript: str) -> dict:
         "utterances": utterances,
         "duration_seconds": max_time,
         "last_speaker": last_speaker,
-        "speaker_count": len(
-            [s for s in speakers if s.startswith("Prospect")]
-        ),
+        "speaker_count": len([s for s in speakers if s.startswith("Prospect")]),
     }
 
 
@@ -90,11 +92,12 @@ def parse_timestamped_transcript(transcript: str) -> dict:
 
     result = _parsed_timestamped_transcript_impl(transcript)
 
-    with _parse_cache_lock: 
+    with _parse_cache_lock:
         _parse_cache[key] = result
         if len(_parse_cache) > _parse_cache_max_size:
-            _parse_cache.popitem(last = False)
+            _parse_cache.popitem(last=False)
         return deepcopy(result)
+
 
 def parse_speaker_from_transcripts(transcript: str) -> dict:
     pattern = r"\[([^\]]+)\]:\s*([^\[]+)"
@@ -119,6 +122,7 @@ def retrieve_context(user_id: str, query: str, k: int = 3):
     sources = [doc.metadata.get("source", "Unknown") for doc in docs]
     return context, sources
 
+
 async def retrieve_context_async(user_id: str, query: str, k: int = 3):
     return await asyncio.to_thread(retrieve_context, user_id, query, k)
 
@@ -126,6 +130,7 @@ async def retrieve_context_async(user_id: str, query: str, k: int = 3):
 async def ai_suggestion(
     deal_state: DealState,
     decision_intent: DecisionIntent,
+    close_probability: float,
     conversation_summary: str,
     conversation_transcript: str,
     prospect_transcript: str,
@@ -152,6 +157,9 @@ async def ai_suggestion(
             Stage: {deal_state.stage}%
             Objection: {deal_state.objection_level}
             Payment Discussed: {deal_state.payment_discussed}
+
+            INTELLIGENCE (INFORMATIONAL - DOES NOT AFFECT INTENT OR STRATEGY):
+            Close Probability: {close_probability:.0%}
 
             DECISION (FIXED):
             Intent: {decision_intent.value}
@@ -237,6 +245,8 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
 
         intent = decide_next_intent(deal_state)
 
+        close_probability = compute_close_probability(deal_state)
+
         use_rag = intent in [
             DecisionIntent.HANDLE_OBJECTION,
             DecisionIntent.PUSH_PAYMENT,
@@ -246,11 +256,14 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
         sources = []
 
         if use_rag:
-            context, sources = await retrieve_context_async(req.user_id, search_query, k=3)
+            context, sources = await retrieve_context_async(
+                req.user_id, search_query, k=3
+            )
 
         suggestion = await ai_suggestion(
             deal_state=deal_state,
             decision_intent=intent,
+            close_probability=close_probability,
             conversation_transcript=req.conversation_transcript or "",
             # conversation_summary=req.conversation_summary,
             conversation_summary="",
@@ -266,14 +279,15 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
             # conversation_summary=suggestion["conversation_summary"],
             sources=list(set(sources)),
             speakers_detected=suggestion.get("speakers_detected", 1),
+            close_probability=close_probability,
         )
 
     except Exception as e:
         print(f"AI suggestion failed: {str(e)}")
         return QueryResponse(
-            what_to_say = "Let's lock in the next step so we don't lose momentum.",
-            why_it_works= "Keeps controls even if system stalls.",
-            next_move= "Ask for availability or commitment.",
-            sources = [],
-            speakers_detected = 1,
+            what_to_say="Let's lock in the next step so we don't lose momentum.",
+            why_it_works="Keeps controls even if system stalls.",
+            next_move="Ask for availability or commitment.",
+            sources=[],
+            speakers_detected=1,
         )

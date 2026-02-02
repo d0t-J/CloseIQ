@@ -26,3 +26,4 @@ class QueryResponse(BaseModel):
     # conversation_summary: str
     sources: List[str]
     speakers_detected: Optional[int] = None
+    close_probability: Optional[float] = None
