@@ -11,6 +11,11 @@ function App() {
     const [closerTranscript, setCloserTranscript] = useState("");
     const [aiSuggestion, setAiSuggestion] = useState(null);
     const [isLoadingAI, setIsLoadingAI] = useState(false);
+    const [streamingSuggestion, setStreamingSuggestion] = useState({
+        whatToSay: "",
+        whyItWorks: "",
+        nextMove: "",
+    });
     const prospectConnectionRef = useRef(null);
     const closerConnectionRef = useRef(null);
     const prospectMediaRecorderRef = useRef(null);
@@ -121,7 +126,7 @@ function App() {
 
     const getTimelineDelta = () => {
         const newEntries = conversationTimeline.current.slice(
-            lastSentTimelineIndex.current
+            lastSentTimelineIndex.current,
         );
         lastSentTimelineIndex.current = conversationTimeline.current.length;
         return newEntries;
@@ -134,15 +139,30 @@ function App() {
                 (entry) =>
                     `[${formatTimestamp(entry.startTime)}] ${entry.speaker}: ${
                         entry.text
-                    }`
+                    }`,
             )
             .join("\n");
+    };
+
+    const streamText = (fullText, setter, delay = 15) => {
+        let index = 0;
+        setter("");
+
+        const interval = setInterval(() => {
+            index += 1;
+            const newValue = fullText.slice(0,index);
+            setter(newValue);
+
+            if (index >= fullText.length) {
+                clearInterval(interval);
+            }
+        }, delay);
     };
 
     const handleGetAISuggestion = async () => {
         const prospectDelta = getDelta(
             prospectFinalTranscript.current,
-            "prospect"
+            "prospect",
         );
         const closerDelta = getDelta(closerFinalTranscript.current, "closer");
 
@@ -160,9 +180,8 @@ function App() {
         setAiSuggestion(null);
 
         try {
-            const formattedConversation = formatTimelineForAI(
-                getTimelineDelta()
-            );
+            const formattedConversation =
+                formatTimelineForAI(getTimelineDelta());
 
             const response = await fetch(`${BACKEND_URL}/query`, {
                 method: "POST",
@@ -179,12 +198,21 @@ function App() {
             if (!response.ok) throw new Error("RAG query failed");
 
             const data = await response.json();
+            const whatToSay = data.what_to_say || "";
+            const whyItWorks = data.why_it_works || "";
+            const nextMove = data.next_move || "";
+
+            setStreamingSuggestion({
+                whatToSay: "",
+                whyItWorks: "",
+                nextMove: "",
+            });
 
             // ✅ Update suggestion
             setAiSuggestion({
-                whatToSay: data.what_to_say || "",
-                whyItWorks: data.why_it_works || "",
-                nextMove: data.next_move || "",
+                whatToSay,
+                whyItWorks,
+                nextMove,
                 sources: data.sources || [],
                 timestamp: new Date().toISOString(),
                 closeProbability:
@@ -199,10 +227,15 @@ function App() {
                         : null,
             });
 
-            // // ✅ VERY IMPORTANT: overwrite summary
-            //? if (data.conversation_summary) {
-            // ?    setConversationSummary(data.conversation_summary);
-            // ?}
+            streamText(whatToSay, (v) =>
+                setStreamingSuggestion((prev) => ({ ...prev, whatToSay: v })),
+            );
+            streamText(whyItWorks, (v) =>
+                setStreamingSuggestion((prev) => ({ ...prev, whyItWorks: v })),
+            );
+            streamText(nextMove, (v) =>
+                setStreamingSuggestion((prev) => ({ ...prev, nextMove: v })),
+            );
         } catch (error) {
             console.error(error);
             setAiSuggestion({
@@ -214,6 +247,11 @@ function App() {
                 dealStage: 0,
                 avatar: null,
                 timestamp: new Date().toISOString(),
+            });
+            setStreamingSuggestion({
+                whatToSay: "",
+                whyItWorks: "",
+                nextMove: "",
             });
         } finally {
             setIsLoadingAI(false);
@@ -310,7 +348,7 @@ function App() {
                         setCloserTranscript(
                             closerFinalTranscript.current +
                                 (closerFinalTranscript.current ? " " : "") +
-                                transcript
+                                transcript,
                         );
                     }
                 }
@@ -341,7 +379,7 @@ function App() {
             const audioTracks = systemStream.getAudioTracks();
             if (audioTracks.length === 0) {
                 alert(
-                    'Please select "Share audio" when choosing screen/window'
+                    'Please select "Share audio" when choosing screen/window',
                 );
                 return;
             }
@@ -434,16 +472,16 @@ function App() {
                     const formattedText = segments
                         .map((segment) => {
                             const speakerLabel = mapSpeakerLabel(
-                                segment.speaker
+                                segment.speaker,
                             );
                             addToTimeline(
                                 speakerLabel,
                                 segment.text,
                                 segment.startTime,
-                                segment.endTime
+                                segment.endTime,
                             );
                             return `[${formatTimestamp(
-                                segment.startTime
+                                segment.startTime,
                             )}] ${speakerLabel}: ${segment.text}`;
                         })
                         .join("\n");
@@ -451,7 +489,7 @@ function App() {
                         (prospectFinalTranscript.current ? "\n" : "") +
                         formattedText;
                     setProspectTranscript(
-                        prospectFinalTranscript.current.trim()
+                        prospectFinalTranscript.current.trim(),
                     );
                 } else if (isFinal) {
                     const startTime =
@@ -466,7 +504,7 @@ function App() {
                     setProspectTranscript(
                         prospectFinalTranscript.current +
                             (prospectFinalTranscript.current ? " " : "") +
-                            transcript
+                            transcript,
                     );
                 }
             });
@@ -479,7 +517,7 @@ function App() {
         } catch (error) {
             console.error("Error starting prospect transcription:", error);
             alert(
-                'System audio capture failed. Make sure to select "Share audio" option.'
+                'System audio capture failed. Make sure to select "Share audio" option.',
             );
             throw error;
         }
@@ -973,7 +1011,7 @@ function App() {
                                     Close Probability:{" "}
                                     {Math.round(
                                         Number(aiSuggestion.closeProbability) *
-                                            100
+                                            100,
                                     )}
                                     %
                                 </p>
@@ -1005,7 +1043,8 @@ function App() {
                                         </h3>
                                     </div>
                                     <p className="text-sm text-slate-300 leading-relaxed">
-                                        {aiSuggestion.whatToSay}
+                                        {streamingSuggestion.whatToSay ||
+                                            aiSuggestion.whatToSay}
                                     </p>
                                 </div>
 
@@ -1030,7 +1069,8 @@ function App() {
                                         </h3>
                                     </div>
                                     <p className="text-sm text-slate-300 leading-relaxed">
-                                        {aiSuggestion.whyItWorks}
+                                        {streamingSuggestion.whyItWorks ||
+                                            aiSuggestion.whyItWorks}
                                     </p>
                                 </div>
 
@@ -1055,7 +1095,8 @@ function App() {
                                         </h3>
                                     </div>
                                     <p className="text-sm text-slate-300 leading-relaxed">
-                                        {aiSuggestion.nextMove}
+                                        {streamingSuggestion.nextMove ||
+                                            aiSuggestion.nextMove}
                                     </p>
                                 </div>
                             </div>
@@ -1076,8 +1117,8 @@ function App() {
                                                     {Math.round(
                                                         Number(
                                                             aiSuggestion.avatar
-                                                                .confidence
-                                                        ) * 100
+                                                                .confidence,
+                                                        ) * 100,
                                                     )}
                                                     %)
                                                 </>
@@ -1113,7 +1154,7 @@ function App() {
                                                     >
                                                         {source}
                                                     </span>
-                                                )
+                                                ),
                                             )}
                                         </div>
                                     </div>
