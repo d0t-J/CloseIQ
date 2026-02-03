@@ -10,12 +10,15 @@ from langchain_openai import ChatOpenAI
 from app.core.config import OPENAI_API_KEY
 from app.services.file_service import get_user_vector_store
 from app.models.api_models import QueryRequest, QueryResponse
+from app.models.cockpit_model import SalesCockpit, AvatarInfo
 from app.services.deal_engine.state import DealState
 from app.services.deal_engine.perception import update_state_from_transcript
 from app.services.deal_engine.decision import DecisionIntent, decide_next_intent
 from app.services.deal_engine.session_store import get_deal_state, set_deal_state
 from app.services.intelligence.close_probability import compute_close_probability
 from app.services.intelligence.avatar_signals import extract_avatar_signals
+from app.services.intelligence.avatar_profile import AvatarProfile
+from app.services.intelligence.avatar_convergence import converge_avatar
 from app.services.intelligence.avatar_store import (
     set_avatar_signals,
     get_avatar_signals,
@@ -260,6 +263,17 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
 
         close_probability = compute_close_probability(deal_state)
 
+        avatar_profile = converge_avatar(avatar_signals)
+
+        avatar_info = None
+
+        if avatar_profile.is_confident():
+            avatar_info = AvatarInfo(
+                avatar_type=avatar_profile.avatar_type,
+                confidence=avatar_profile.confidence,
+                evidence=avatar_profile.evidence or [],
+            )
+
         use_rag = intent in [
             DecisionIntent.HANDLE_OBJECTION,
             DecisionIntent.PUSH_PAYMENT,
@@ -285,23 +299,37 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
             context=context,
         )
 
-        return QueryResponse(
+        return SalesCockpit(
             what_to_say=suggestion["what_to_say"],
             why_it_works=suggestion["why_it_works"],
             next_move=suggestion["next_move"],
-            # conversation_summary=suggestion["conversation_summary"],
+            deal_stage=deal_state.stage,
+            objection_level=deal_state.objection_level,
+            close_probability=close_probability,
+            avatar=avatar_info,
             sources=list(set(sources)),
             speakers_detected=suggestion.get("speakers_detected", 1),
-            close_probability=close_probability,
         )
+        # return QueryResponse(
+        #     what_to_say=suggestion["what_to_say"],
+        #     why_it_works=suggestion["why_it_works"],
+        #     next_move=suggestion["next_move"],
+        #     # conversation_summary=suggestion["conversation_summary"],
+        #     sources=list(set(sources)),
+        #     speakers_detected=suggestion.get("speakers_detected", 1),
+        #     close_probability=close_probability,
+        # )
 
     except Exception as e:
         print(f"AI suggestion failed: {str(e)}")
-        return QueryResponse(
+        return SalesCockpit(
             what_to_say="Let's lock in the next step so we don't lose momentum.",
-            why_it_works="Keeps controls even if system stalls.",
+            why_it_works="Keeps control even if system stalls.",
             next_move="Ask for availability or commitment.",
+            deal_stage=0,
+            objection_level=None,
+            close_probability=0.0,
+            avatar=None,
             sources=[],
             speakers_detected=1,
-            close_probability=0.0,
         )

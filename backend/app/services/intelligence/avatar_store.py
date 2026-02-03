@@ -5,7 +5,7 @@ _avatar_signal_store = defaultdict(AvatarSignals)
 
 
 def get_avatar_signals(session_key: str) -> AvatarSignals:
-    return _avatar_signal_store
+    return _avatar_signal_store[session_key]
 
 
 def set_avatar_signals(session_key: str, avatar_signals: AvatarSignals) -> None:
