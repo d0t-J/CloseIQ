@@ -12,7 +12,8 @@ class FileMetadata(BaseModel):
 
 class QueryRequest(BaseModel):
     user_id: str
-    conversation_summary: Optional[str] = None
+    session_id: Optional[str] = None
+    #? conversation_summary: Optional[str] = None
     conversation_transcript: Optional[str] = None
     prospect_transcript: str
     closer_transcript: str
@@ -22,6 +23,7 @@ class QueryResponse(BaseModel):
     what_to_say: str
     why_it_works: str
     next_move: str
-    conversation_summary: str
+    # conversation_summary: str
     sources: List[str]
     speakers_detected: Optional[int] = None
+    close_probability: Optional[float] = None
