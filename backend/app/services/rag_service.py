@@ -252,7 +252,7 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
 
         if req.prospect_transcript:
             avatar_signals = extract_avatar_signals(
-                req.closer_transcript, avatar_signals
+                req.prospect_transcript, avatar_signals
             )
         set_avatar_signals(session_key, avatar_signals)
 
