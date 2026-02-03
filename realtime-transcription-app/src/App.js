@@ -45,7 +45,9 @@ function App() {
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
 
-        return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+        return `${mins.toString().padStart(2, "0")}:${secs
+            .toString()
+            .padStart(2, "0")}`;
     };
 
     const getCallElapsedTime = () => {
@@ -66,7 +68,9 @@ function App() {
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
 
-        return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+        return `${mins.toString().padStart(2, "0")}:${secs
+            .toString()
+            .padStart(2, "0")}`;
     };
 
     const getElapsedTime = () => {
@@ -114,7 +118,7 @@ function App() {
 
     const getTimelineDelta = () => {
         const newEntries = conversationTimeline.current.slice(
-            lastSentTimelineIndex.current,
+            lastSentTimelineIndex.current
         );
         lastSentTimelineIndex.current = conversationTimeline.current.length;
         return newEntries;
@@ -125,7 +129,9 @@ function App() {
             .sort((a, b) => a.startTime - b.startTime)
             .map(
                 (entry) =>
-                    `[${formatTimestamp(entry.startTime)}] ${entry.speaker}: ${entry.text}`,
+                    `[${formatTimestamp(entry.startTime)}] ${entry.speaker}: ${
+                        entry.text
+                    }`
             )
             .join("\n");
     };
@@ -133,7 +139,7 @@ function App() {
     const handleGetAISuggestion = async () => {
         const prospectDelta = getDelta(
             prospectFinalTranscript.current,
-            "prospect",
+            "prospect"
         );
         const closerDelta = getDelta(closerFinalTranscript.current, "closer");
 
@@ -151,8 +157,9 @@ function App() {
         setAiSuggestion(null);
 
         try {
-            const formattedConversation =
-                formatTimelineForAI(getTimelineDelta());
+            const formattedConversation = formatTimelineForAI(
+                getTimelineDelta()
+            );
 
             const response = await fetch(`${BACKEND_URL}/query`, {
                 method: "POST",
@@ -175,9 +182,18 @@ function App() {
                 whatToSay: data.what_to_say || "",
                 whyItWorks: data.why_it_works || "",
                 nextMove: data.next_move || "",
-                // conversationSummary: data.conversation_summary || "",
                 sources: data.sources || [],
                 timestamp: new Date().toISOString(),
+                closeProbability:
+                    typeof data.close_probability === "number"
+                        ? data.close_probability
+                        : 0,
+                dealStage:
+                    typeof data.deal_stage === "number" ? data.deal_stage : 0,
+                avatar:
+                    data.avatar && data.avatar.avatar_type != null
+                        ? data.avatar
+                        : null,
             });
 
             // // ✅ VERY IMPORTANT: overwrite summary
@@ -281,7 +297,7 @@ function App() {
                         setCloserTranscript(
                             closerFinalTranscript.current +
                                 (closerFinalTranscript.current ? " " : "") +
-                                transcript,
+                                transcript
                         );
                     }
                 }
@@ -312,7 +328,7 @@ function App() {
             const audioTracks = systemStream.getAudioTracks();
             if (audioTracks.length === 0) {
                 alert(
-                    'Please select "Share audio" when choosing screen/window',
+                    'Please select "Share audio" when choosing screen/window'
                 );
                 return;
             }
@@ -405,22 +421,24 @@ function App() {
                     const formattedText = segments
                         .map((segment) => {
                             const speakerLabel = mapSpeakerLabel(
-                                segment.speaker,
+                                segment.speaker
                             );
                             addToTimeline(
                                 speakerLabel,
                                 segment.text,
                                 segment.startTime,
-                                segment.endTime,
+                                segment.endTime
                             );
-                            return `[${formatTimestamp(segment.startTime)}] ${speakerLabel}: ${segment.text}`;
+                            return `[${formatTimestamp(
+                                segment.startTime
+                            )}] ${speakerLabel}: ${segment.text}`;
                         })
                         .join("\n");
                     prospectFinalTranscript.current +=
                         (prospectFinalTranscript.current ? "\n" : "") +
                         formattedText;
                     setProspectTranscript(
-                        prospectFinalTranscript.current.trim(),
+                        prospectFinalTranscript.current.trim()
                     );
                 } else if (isFinal) {
                     const startTime =
@@ -435,7 +453,7 @@ function App() {
                     setProspectTranscript(
                         prospectFinalTranscript.current +
                             (prospectFinalTranscript.current ? " " : "") +
-                            transcript,
+                            transcript
                     );
                 }
             });
@@ -448,7 +466,7 @@ function App() {
         } catch (error) {
             console.error("Error starting prospect transcription:", error);
             alert(
-                'System audio capture failed. Make sure to select "Share audio" option.',
+                'System audio capture failed. Make sure to select "Share audio" option.'
             );
             throw error;
         }
@@ -623,8 +641,12 @@ function App() {
                                                 key={i}
                                                 className="w-1 bg-blue-400 rounded-full animate-pulse"
                                                 style={{
-                                                    height: `${Math.random() * 10 + 6}px`,
-                                                    animationDelay: `${i * 0.15}s`,
+                                                    height: `${
+                                                        Math.random() * 10 + 6
+                                                    }px`,
+                                                    animationDelay: `${
+                                                        i * 0.15
+                                                    }s`,
                                                 }}
                                             />
                                         ))}
@@ -664,8 +686,12 @@ function App() {
                                                 key={i}
                                                 className="w-1 bg-emerald-400 rounded-full animate-pulse"
                                                 style={{
-                                                    height: `${Math.random() * 10 + 6}px`,
-                                                    animationDelay: `${i * 0.15}s`,
+                                                    height: `${
+                                                        Math.random() * 10 + 6
+                                                    }px`,
+                                                    animationDelay: `${
+                                                        i * 0.15
+                                                    }s`,
                                                 }}
                                             />
                                         ))}
@@ -929,6 +955,21 @@ function App() {
 
                     {!isLoadingAI && aiSuggestion && (
                         <div className="space-y-4">
+                            {aiSuggestion.closeProbability != null && (
+                                <p className="text-sm text-slate-400">
+                                    Close Probability:{" "}
+                                    {Math.round(
+                                        Number(aiSuggestion.closeProbability) *
+                                            100
+                                    )}
+                                    %
+                                </p>
+                            )}
+                            {aiSuggestion.dealStage != null && (
+                                <p className="text-sm text-slate-400">
+                                    Deal Stage: {Number(aiSuggestion.dealStage)}
+                                </p>
+                            )}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 {/* What to Say */}
                                 <div className="bg-[#0a0a0a] border border-[#262626] rounded-xl p-4 hover:border-[#333] transition-colors">
@@ -1006,6 +1047,31 @@ function App() {
                                 </div>
                             </div>
 
+                            {aiSuggestion.avatar &&
+                                aiSuggestion.avatar.avatar_type && (
+                                    <div className="pt-4 border-t border-[#262626]">
+                                        <p className="text-xs text-slate-500 mb-1">
+                                            Avatar:
+                                        </p>
+                                        <p className="text-sm text-slate-300">
+                                            {aiSuggestion.avatar.avatar_type}
+                                            {aiSuggestion.avatar.confidence !=
+                                                null && (
+                                                <>
+                                                    {" "}
+                                                    (
+                                                    {Math.round(
+                                                        Number(
+                                                            aiSuggestion.avatar
+                                                                .confidence
+                                                        ) * 100
+                                                    )}
+                                                    %)
+                                                </>
+                                            )}
+                                        </p>
+                                    </div>
+                                )}
                             {aiSuggestion.sources &&
                                 aiSuggestion.sources.length > 0 && (
                                     <div className="pt-4 border-t border-[#262626]">
@@ -1034,7 +1100,7 @@ function App() {
                                                     >
                                                         {source}
                                                     </span>
-                                                ),
+                                                )
                                             )}
                                         </div>
                                     </div>
