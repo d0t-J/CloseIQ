@@ -15,6 +15,11 @@ from app.services.deal_engine.perception import update_state_from_transcript
 from app.services.deal_engine.decision import DecisionIntent, decide_next_intent
 from app.services.deal_engine.session_store import get_deal_state, set_deal_state
 from app.services.intelligence.close_probability import compute_close_probability
+from app.services.intelligence.avatar_signals import extract_avatar_signals
+from app.services.intelligence.avatar_store import (
+    set_avatar_signals,
+    get_avatar_signals,
+)
 
 PARSE_TRANSCRIPT_MAX_CHARS = 5000
 _parse_cache: OrderedDict = OrderedDict()
@@ -187,7 +192,7 @@ async def ai_suggestion(
     try:
         response = await llm.ainvoke(prompt)
     except Exception as e:
-        if "timeout" in str(e).lower:
+        if "timeout" in str(e).lower():
             print(f"LLM timeout: {str(e)}")
         else:
             print(f"LLM invocation failed: {str(e)}")
@@ -240,6 +245,14 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
         )
         set_deal_state(session_key, deal_state)
 
+        avatar_signals = get_avatar_signals(session_key)
+
+        if req.prospect_transcript:
+            avatar_signals = extract_avatar_signals(
+                req.closer_transcript, avatar_signals
+            )
+        set_avatar_signals(session_key, avatar_signals)
+
         search_text = req.conversation_transcript or req.prospect_transcript
         search_query = f"Sales conversation: {search_text[:300]}"
 
@@ -290,4 +303,5 @@ async def handle_query(req: QueryRequest) -> QueryResponse:
             next_move="Ask for availability or commitment.",
             sources=[],
             speakers_detected=1,
+            close_probability=0.0,
         )
