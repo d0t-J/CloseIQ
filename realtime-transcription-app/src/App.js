@@ -92,13 +92,16 @@ function App() {
     // Backend API URL
     const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
 
+    // Initialize Deepgram client once on mount
     useEffect(() => {
         const apiKey = process.env.REACT_APP_DEEPGRAM_API_KEY;
         if (apiKey) {
             deepgramClientRef.current = createClient(apiKey);
         }
+    }, []);
 
-        // Keyboard shortcut listener (Command/Ctrl + J)
+    // Keyboard shortcut listener (Command/Ctrl + J)
+    useEffect(() => {
         const handleKeyPress = (e) => {
             if ((e.metaKey || e.ctrlKey) && e.key === "j") {
                 e.preventDefault();
@@ -107,7 +110,7 @@ function App() {
         };
         window.addEventListener("keydown", handleKeyPress);
         return () => window.removeEventListener("keydown", handleKeyPress);
-    }, [prospectTranscript, closerTranscript]);
+    });
 
     const getDelta = (fullText, type) => {
         const lastIndex = lastSentIndex.current[type];
@@ -202,6 +205,16 @@ function App() {
             // ?}
         } catch (error) {
             console.error(error);
+            setAiSuggestion({
+                whatToSay: "Connection issue - please try again.",
+                whyItWorks: "The AI service may be temporarily unavailable.",
+                nextMove: "Click 'Get AI Coaching' to retry.",
+                sources: [],
+                closeProbability: 0,
+                dealStage: 0,
+                avatar: null,
+                timestamp: new Date().toISOString(),
+            });
         } finally {
             setIsLoadingAI(false);
         }

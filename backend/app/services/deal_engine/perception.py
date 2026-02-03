@@ -40,12 +40,12 @@ def update_state_from_transcript(deal_state: DealState, transcript: str) -> Deal
 
     return deal_state
 
+
 def infer_basic_objection_level(transcript: str) -> str:
     prospect_text = extract_prospect_utterances(transcript)
-    
+
     if not prospect_text:
         return "None"
-
 
     surface = ["need to think", "send me", "get back to you", "talk to my"]
 
@@ -62,6 +62,7 @@ def infer_basic_objection_level(transcript: str) -> str:
 
     return "None"
 
+
 def extract_prospect_utterances(transcript: str) -> str:
     if not transcript:
         return ""
@@ -69,5 +70,7 @@ def extract_prospect_utterances(transcript: str) -> str:
     pattern = r"\[(\d{1,2}:\d{2})\]\s*(Prospect[^:]*):\s*(.+?)(?=\[(\d{1,2}:\d{2})\]|$)"
     matches = re.findall(pattern, transcript, re.DOTALL)
 
-    prospect_lines = [text.strip() for _, text in matches]
+    # Pattern captures: (timestamp, speaker_label, text, next_timestamp_or_empty)
+    # We want the text (index 2)
+    prospect_lines = [match[2].strip() for match in matches if len(match) >= 3]
     return " ".join(prospect_lines).lower()
