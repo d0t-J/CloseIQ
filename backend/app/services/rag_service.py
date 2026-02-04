@@ -34,7 +34,7 @@ llm = ChatOpenAI(
     api_key=OPENAI_API_KEY,
     base_url="https://openrouter.ai/api/v1",
     temperature=0.7,
-    request_timeout=1.5,
+    # request_timeout=1.5,
 )
 
 
@@ -206,35 +206,66 @@ async def ai_suggestion(
             "speakers_detected": parsed.get("speaker_count", 1),
         }
     content = response.content
-
+    print(f"=> LLM Response: \n{content}\n{'=' * 50} ")
     sections = {"what": "", "why": "", "next": "", "summary": ""}
 
     current = None
     for line in content.split("\n"):
         l = line.lower().strip()
+        
+        # Check for section headers and extract inline content
         if l.startswith("what to say"):
             current = "what"
+            # Extract content after colon on the same line
+            if ":" in line:
+                after_colon = line.split(":", 1)[1].strip()
+                if after_colon:
+                    sections["what"] += after_colon + " "
             continue
-        if l.startswith("why"):
+        if l.startswith("why it works") or (l.startswith("why") and "works" in l):
             current = "why"
+            if ":" in line:
+                after_colon = line.split(":", 1)[1].strip()
+                if after_colon:
+                    sections["why"] += after_colon + " "
             continue
-        if l.startswith("next"):
+        if l.startswith("next move") or (l.startswith("next") and "move" in l):
             current = "next"
+            if ":" in line:
+                after_colon = line.split(":", 1)[1].strip()
+                if after_colon:
+                    sections["next"] += after_colon + " "
             continue
         if l.startswith("conversation summary"):
             current = "summary"
+            if ":" in line:
+                after_colon = line.split(":", 1)[1].strip()
+                if after_colon:
+                    sections["summary"] += after_colon + " "
             continue
 
-        if current:
-            sections[current] += line + " "
+        # Append continuation lines to current section
+        if current and line.strip():
+            sections[current] += line.strip() + " "
 
-    return {
+    result = {
         "what_to_say": sections["what"].strip(),
         "why_it_works": sections["why"].strip(),
         "next_move": sections["next"].strip(),
-        # "conversation_summary": sections["summary"].strip(),
         "speakers_detected": parsed.get("speaker_count", 1),
     }
+    
+    # Fallback if parsing failed completely
+    if not result["what_to_say"] and not result["why_it_works"] and not result["next_move"]:
+        print(f"⚠️ Parsing failed, raw content: {content[:300]}")
+        return {
+            "what_to_say": "Let's keep the conversation moving - what's your timeline?",
+            "why_it_works": "Parsing issue detected.",
+            "next_move": "Re-engage with an open question.",
+            "speakers_detected": parsed.get("speaker_count", 1),
+        }
+    
+    return result
 
 
 async def handle_query(req: QueryRequest) -> QueryResponse:
