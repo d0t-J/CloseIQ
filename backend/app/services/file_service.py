@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi import UploadFile, HTTPException
 
-from app.core.config import OPENAI_API_KEY
+from app.core.config import OPENAI_API_KEY, OPENAI_API_BASE, EMBEDDING_MODEL
 from app.models.api_models import FileMetadata
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
@@ -33,9 +33,9 @@ os.makedirs(VECTOR_DB_DIR, exist_ok=True)
 os.makedirs(METADATA_DIR, exist_ok=True)
 
 embeddings = OpenAIEmbeddings(
-    model="text-embedding-3-small",
+    model=EMBEDDING_MODEL,
     api_key=OPENAI_API_KEY,
-    base_url="https://openrouter.ai/api/v1",
+    base_url=OPENAI_API_BASE,
 )
 
 # Global vectorstore cache - properly close karenge

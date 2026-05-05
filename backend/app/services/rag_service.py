@@ -7,7 +7,7 @@ from collections import OrderedDict
 from fastapi import HTTPException
 from langchain_openai import ChatOpenAI
 
-from app.core.config import OPENAI_API_KEY
+from app.core.config import OPENAI_API_KEY, OPENAI_API_BASE, LLM_MODEL
 from app.services.file_service import get_user_vector_store
 from app.models.api_models import QueryRequest, QueryResponse
 from app.models.cockpit_model import SalesCockpit, AvatarInfo
@@ -30,9 +30,9 @@ _parse_cache_lock = threading.Lock()
 _parse_cache_max_size = 256
 
 llm = ChatOpenAI(
-    model="openai/gpt-4o-mini",
+    model=LLM_MODEL,
     api_key=OPENAI_API_KEY,
-    base_url="https://openrouter.ai/api/v1",
+    base_url=OPENAI_API_BASE,
     temperature=0.7,
     # request_timeout=1.5,
 )
@@ -212,7 +212,7 @@ async def ai_suggestion(
     current = None
     for line in content.split("\n"):
         l = line.lower().strip()
-        
+
         # Check for section headers and extract inline content
         if l.startswith("what to say"):
             current = "what"
@@ -254,9 +254,13 @@ async def ai_suggestion(
         "next_move": sections["next"].strip(),
         "speakers_detected": parsed.get("speaker_count", 1),
     }
-    
+
     # Fallback if parsing failed completely
-    if not result["what_to_say"] and not result["why_it_works"] and not result["next_move"]:
+    if (
+        not result["what_to_say"]
+        and not result["why_it_works"]
+        and not result["next_move"]
+    ):
         print(f"⚠️ Parsing failed, raw content: {content[:300]}")
         return {
             "what_to_say": "Let's keep the conversation moving - what's your timeline?",
@@ -264,7 +268,7 @@ async def ai_suggestion(
             "next_move": "Re-engage with an open question.",
             "speakers_detected": parsed.get("speaker_count", 1),
         }
-    
+
     return result
 
 
