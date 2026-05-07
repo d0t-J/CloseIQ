@@ -3,7 +3,7 @@ import { createClient, LiveTranscriptionEvents } from "@deepgram/sdk";
 import LoginPage from "./LoginPage";
 import AISuggestions from "./AISuggestions";
 import { KnowledgeBasePopup } from "./KnowledgeBasePopup.jsx";
-import enzetiLogo from "./assets/enzeti_logo.png";
+import closeIQLogo from "./assets/closeiq_logo.png";
 function App() {
     const [session, setSession] = useState(null);
     const [isRecording, setIsRecording] = useState(false);
@@ -150,7 +150,7 @@ function App() {
 
         const interval = setInterval(() => {
             index += 1;
-            const newValue = fullText.slice(0,index);
+            const newValue = fullText.slice(0, index);
             setter(newValue);
 
             if (index >= fullText.length) {
@@ -575,12 +575,12 @@ function App() {
                     {/* Left branding */}
                     <div className="flex items-center gap-4">
                         <img
-                            src={enzetiLogo}
-                            alt="eNZeTi"
+                            src={closeIQLogo}
+                            alt="CloseIQ"
                             className="h-10 w-auto object-contain drop-shadow-[0_0_25px_rgba(212,175,55,0.4)]"
                         />
                         <span className="font-semibold text-lg">
-                            eNZeTi Coach
+                            CloseIQ Coach
                         </span>
 
                         {isRecording && (
@@ -1171,7 +1171,7 @@ function App() {
                     onClose={() => setPopupOpen(false)}
                     session={session}
                     backendUrl={BACKEND_URL}
-                    enzetiLogo={enzetiLogo}
+                    closeIQLogo={closeIQLogo}
                 />
             )}
         </div>

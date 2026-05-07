@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import enzetiLogo from "./assets/enzeti_logo.png";
+import closeIQLogo from "./assets/closeiq_logo.png";
 
 // Supabase client
 const supabase = createClient(
@@ -56,8 +56,8 @@ export default function LoginPage({ onLogin }) {
                 <div className="flex flex-col items-center mb-8">
                     <div className="mb-4 flex items-center justify-center">
                         <img
-                            src={enzetiLogo}
-                            alt="eNZeTi Logo"
+                            src={closeIQLogo}
+                            alt="CloseIQ Logo"
                             className="w-28 h-28 object-contain drop-shadow-[0_0_30px_rgba(212,175,55,0.45)]"
                         />
                     </div>
