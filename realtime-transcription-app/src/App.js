@@ -579,10 +579,6 @@ function App() {
                             alt="CloseIQ"
                             className="h-10 w-auto object-contain drop-shadow-[0_0_25px_rgba(212,175,55,0.4)]"
                         />
-                        <span className="font-semibold text-lg">
-                            CloseIQ Coach
-                        </span>
-
                         {isRecording && (
                             <div className="flex items-center gap-3 ml-2">
                                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20">

@@ -1,18 +1,18 @@
 version: "3.9"
 
 services:
-  backend:
-    build: ./backend
-    env_file:
-      - ./backend/.env
-    ports:
-      - "8000:8000"
-    restart: always
+    backend:
+        build: ./backend
+        env_file:
+            - ./backend/.env
+        ports:
+            - "8000:8000"
+        restart: always
 
-  frontend:
-    build: ./realtime-transcription-app
-    ports:
-     - "8080:80"
-    depends_on:
-      - backend
-    restart: always
+    frontend:
+        build: ./frontend
+        ports:
+            - "8080:80"
+        depends_on:
+            - backend
+        restart: always

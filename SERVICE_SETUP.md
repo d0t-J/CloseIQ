@@ -82,7 +82,7 @@ Create env files from examples:
 
 ```powershell
 Copy-Item backend\.env.example backend\.env
-Copy-Item realtime-transcription-app\.env.example realtime-transcription-app\.env
+Copy-Item frontend\.env.example frontend\.env
 ```
 
 Fill required values in both `.env` files.
@@ -100,7 +100,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 Run frontend:
 
 ```powershell
-cd realtime-transcription-app
+cd frontend
 npm install
 npm run electron-dev
 ```
@@ -108,7 +108,7 @@ npm run electron-dev
 Or web mode:
 
 ```powershell
-cd realtime-transcription-app
+cd frontend
 npm start
 ```
 
